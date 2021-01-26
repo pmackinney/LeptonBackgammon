@@ -7,10 +7,10 @@ A FIBS backgammon client written for Android
 --------------------------------------------
 
 The First Internet Backgammon Server (FIBS) is a telnet-based server. It can be played in an telnet 
-terminal, and various
-clients with a Graphical User Interface (GUI) have been developed for it over the years. Lepton 
-Backgammon was
-written with the intention of providing a robust client for Android.
+terminal, and various clients with a Graphical User Interface (GUI) have been developed for it over 
+the years. Lepton Backgammon was written with the intention of providing a robust client for Android.
+
+See https://mackinney.net/lepton_info.html for the latest details.
 
 Project Status
 --------------
