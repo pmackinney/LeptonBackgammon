@@ -15,45 +15,26 @@ import org.apache.commons.net.telnet.TelnetClient;
 import static java.lang.Thread.sleep;
 
 /**
- * Handles all communication with server
+ * Handles all communication with FIBS in a seperate thread
  */
 class TelnetHandler implements Runnable {
-
     private static final String TAG = "TelnetHandler";
-    // Server & login settings are here for now
-    /*
-    http://www.fibs.com/help.html#register
-    To create an account through Telnet you need to connect to FIBS at port 4321
-    (telnet://fibs.com:4321). Login using the login name guest then type name [username] where name
-    is the word 'name' and [username] is the login name you want to use. The username may not
-    contain blanks ' ' or colons ':'. The server will then ask for your password twice
-
-    telnet fibs.com 4321
-     */
-//    private String myServer = "fibs.com"; // TODO: remove hard defaults once real prefs module is implemented
-//    private int myPort = 4321;
     private String myUser = "";
-//    private String myPassword = "";
-//    private static final String CLIENT_NAME = "Lepton_a1";
-//    private static final String CLIP_VERSION = "1008"; // http://www.fibs.com/fibs_interface.html
-    private TelnetHandlerListener helper; // GameHelper
-    private TelnetClient client;
+    private TelnetClient client; // org.apache.commons.net.telnet.TelnetClient
     private BufferedReader in;
     private static final int SERVER_CHAR_SIZE = 512; // optimum size?
     private OutputStreamWriter out;
-    private static final int MAX_WAIT = 30000; // 30 seconds TODO check ticks per sec
+    private static final int MAX_WAIT = 30000; // milliseconds, e.g., 30 seconds
     private static String consoleMessage;
     private static final String EOL = "\r\n"; // End Of Line, specified in FIBS CLIP
     private Context context;
     private SharedPreferences preferences;
     private SharedPreferences.Editor preferencesEditor;
-
+    private TelnetHandlerListener helper; // GameHelper
 
     TelnetHandler(TelnetHandlerListener helper, Context context) {
-
         this.helper = helper;
         this.context = context;
-//        initSettings();
         Executor executor = Executors.newSingleThreadExecutor();
         executor.execute(this);
     }
@@ -63,47 +44,45 @@ class TelnetHandler implements Runnable {
      */
     @Override
     public void run() {
-        // runOnUITread -- use this go from background to foreground.
         try {
-//            Log.i(TAG, "TelnetHandler constructor");
             StringBuilder serverOutput = new StringBuilder();
             long startTime = System.currentTimeMillis();
             String command = "";
             String partial = "";
             do {
-                // Main loop A: looking for commands
+                // Main loop A: check for commands
                 command = helper.readCommand();
                 if (command.length() > 0) {
                     if (command.startsWith("connect ")) { // connect user pw
                         String[] args = command.split(" ");
                         if (args.length == 3) {
-                            myUser = args[1];
+                            myUser = args[1]; // store player's handle for reference
                             connect(args[1], args[2], serverOutput);
                         }
-                    } else if ("bye".equalsIgnoreCase(command)) {
+                    } else if ("bye".equalsIgnoreCase(command)) { // standard telnet session exit.
                         client.disconnect();
                         helper.updateLoginButton(false);
                     } else {
                         if (command.matches("^(raw)?who\\s")) {
-                            helper.enableWhoOutput();
+                            helper.enableWhoOutput(); // normally disabled
                         }
                         write(out, command);
-//                        Log.i(TAG, "sent: " + command);
                     }
                 }
-                // Main loop B: sending server output to the parser TODO: There is a bug here. Read breaks in middle of EOL?
+                // Main loop B: sending server output to the parser
                 if (client != null && client.isConnected()) {
-                    serverOutput.append(partial + read());                                             // prepend partial to output
-                    partial = "";                                                                      // clear partial BUGFIX?
-                    if (serverOutput.lastIndexOf(EOL) >= 2                                             // if string contains end of line
+                    serverOutput.append(partial).append(read());                                        // prepend partial to output
+                    if (serverOutput.lastIndexOf(EOL) >= 2                                              // if string contains end of line
                             && !serverOutput.substring(serverOutput.length() - 2).equals(EOL)) {  //     and EOL not at end of string
-                        partial = serverOutput.substring(serverOutput.lastIndexOf(EOL) + 1);     // save new partial
+                        partial = serverOutput.substring(serverOutput.lastIndexOf(EOL) + 1);      // save new partial
+                    } else {
+                        partial = "";
                     }
                     if (serverOutput.length() > 0) {
                         String[] lines = serverOutput.toString().split("[" + EOL + "]+"); // eliminates most empty lines
-                        for (int ix = 0; ix < lines.length; ix++) {
-                            if (lines[ix].length() > 0) {
-                                helper.parse(lines[ix]);
+                        for (String line : lines) {
+                            if (line.length() > 0) {
+                                helper.parse(line);
                             }
                         }
                         serverOutput.setLength(0);                // clear the buffer
@@ -116,7 +95,7 @@ class TelnetHandler implements Runnable {
                     }
                 }
             } while (!"quit".equals(command));
-            helper.quit();
+            helper.quit(); // quit Lepton Backgammon
         } catch (IOException e) {
             Log.e(TAG, e.toString());
         } catch (InterruptedException e) {
@@ -125,10 +104,7 @@ class TelnetHandler implements Runnable {
     }
 
     /**
-     * Create a telnet connection
-     * @param user
-     * @param password
-     * @param serverOutput
+     * Create a telnet connection, storing output in the passed-in StringBuilder
      */
     void connect(String user, String password, StringBuilder serverOutput) {
         try {
@@ -137,26 +113,22 @@ class TelnetHandler implements Runnable {
              } else if (client.isConnected()) {
                  client.disconnect();
              }
-            client.connect(PreferencesManager.getServer(), PreferencesManager.getPort());
+            client.connect(Preferences.getServer(), Preferences.getPort());
             this.in = new BufferedReader(new InputStreamReader((client.getInputStream())));
             this.out = new OutputStreamWriter(client.getOutputStream());
             // Typical CLIP login: response
             // 1 darth 1592540685 c-67-180-159-87.hsd1.ca.comcast.net
             // 2 darth 1 1 0 0 0 0 1 1 51 0 1 0 1 1496.12 0 0 0 0 0 America/Los_Angeles
             //
-            // Typical failure
-            // login: 5 giovanni_giorgio - - 1 0 1487.29 14850 1 1602460357 67.167.1.235 BGOnline_v3.3.1 -
-            //
-            // e.g., login: with no carriage return, followed by a stream of info for some random user.
+            // Login failure is indicated by another login: prompt with no following EOL
             if (readUntil("login: ", serverOutput)) {
-                String loginCommand = "login" + " " + PreferencesManager.getClientName() + " " + PreferencesManager.getClipVersion() + " " + user + " " + password;
+                String loginCommand = "login" + " " + Preferences.getClientName() + " " + Preferences.getClipVersion() + " " + user + " " + password;
                 write(out, loginCommand);
                 if (readUntil(1 + " " + user + " ", serverOutput)) {
-//                    Log.i(TAG, "Connected as user " + myUser);
                     helper.updateLoginButton(true);
                 } else {
-//                    Log.i(TAG, "Couldn't connect as " + myUser);
                     helper.updateLoginButton(false);
+                    helper.appendConsole("Could not log in with supplied credentials.");
                 }
             } else {
                 Log.e(TAG, "Timeout waiting for login: prompt");
@@ -168,24 +140,16 @@ class TelnetHandler implements Runnable {
         }
     }
 
-    /*
-     waits maxwait for string to appear in server output
-     reads into a char[] because the readLine method blocks if no CR
-     saves all chars read in the provided buffer
-    */
     private boolean readUntil(String string, StringBuilder stringBuilder) {
         return readUntil(string, stringBuilder, MAX_WAIT);
     }
 
     /**
-     * @param string
-     * @param maxwait
      * @return True if the server output contains the desired string, false if timeout is reached
      * before the string appears.
      */
     private boolean readUntil(String string, StringBuilder stringBuilder, long maxwait) {
         long timer = System.currentTimeMillis();
-        // char[] serverChars = new char[SERVER_CHAR_SIZE];
         try {
             do {
                 if (in.ready()) {
@@ -224,12 +188,12 @@ class TelnetHandler implements Runnable {
         } catch (IOException e) {
             Log.e(TAG, "IOException " + e.toString());
         }
-        // just in case we managed to read 1/2 of the 2-char EOL
+        // just in case read() ended on first char of the 2-char EOL sequence [\r\n]
         if (buf.length() > 0) {
             if (buf.charAt(buf.length() - 1) == EOL.charAt(0)) { // complete the EOL at end of buf
                 buf.append(EOL.charAt(1));
             }
-            if (buf.charAt(0) == EOL.charAt(1)) { // discard 2nd char of EOL at start of buf
+            if (buf.charAt(0) == EOL.charAt(1)) { // discard partial EOL at start of buf
                 buf.deleteCharAt(0);
             }
         }
@@ -247,6 +211,9 @@ class TelnetHandler implements Runnable {
         }
     }
 
+    /**
+     * FIBS' board state refers to the player as "You", we prefer to display the login handle.
+     */
     String getMyUser() {
         return myUser;
     }

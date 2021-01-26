@@ -189,6 +189,7 @@ class GameHelper implements TelnetHandlerListener {
     // The pattern needs to break the line at the missing EOL.
     private static final Pattern spanner1 = Pattern.compile("^(board\\S*)\\s(.*)");
     private static final Pattern spanner2 = Pattern.compile("^(.*shows \\d{1,2}\\.)(.+)");
+    private static final String fibsCodes = "^\\d{1,2}\\s?";
     private static final Pattern[] spanner = new Pattern[] {spanner1, spanner2};
 
 
@@ -197,15 +198,19 @@ class GameHelper implements TelnetHandlerListener {
     // for Dialogs
     private Context context;
 
+    /**
+     * Controller class for the MVC model. Fields parsed FIBS output to direct BoardView, and User
+     * inputs to direct TelnetHandler.
+     * @param listener
+     * @param context
+     */
     GameHelper(GameHelperListener listener, Context context) {
-
         this.listener = listener;
         this.context = context;
         fibs = new TelnetHandler(this, context);
         board = new Board();
         board.setBoard(DEFAULT_BOARD);
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        // i
         for (Integer item : new Integer[]{CLIP_MOTD_END, CLIP_WHO_INFO, CLIP_WHO_INFO_END, CLIP_LOGIN, CLIP_LOGOUT}) {
             FIBS_IGNORE.add(item);
         }
@@ -216,39 +221,6 @@ class GameHelper implements TelnetHandlerListener {
     // addCommand & readCommand may be called from different threads, must be synchronized
     @Override
     public synchronized void addCommand(String cmd) {
-        // Testing routines
-//        Log.i(TAG, "addComand " + cmd);
-        if (cmd.startsWith("parse:")) {
-            parse(cmd.substring("parse:".length()));
-            return;
-        } else if (cmd.startsWith("newgame")) {
-            if ("newgame1".equalsIgnoreCase(cmd)) { // darth = brown (X), plays from 1-24
-                parse("board:You:Nortally:3:0:0" + // players, score, match length
-                        ":7:6:7:8:9:10:15:1:2:2:0:0:-4:3:0:0:-1:-3:0:-5:-14:-12:-8:0:2:-8" + // gameBoard
-                        ":-1:6:6:0:0:1:1:1:0" +  // turn, dice, cube
-                        ":-1:1:25:0:0:0:0:0:2:0:0:0"); // color, direction, home, bar ... canMove = 2
-            } else if ("newgame2".equalsIgnoreCase(cmd)) {
-                parse("board:You:Nortally:3:0:0" + // players, score, match length
-                        ":7:6:7:8:9:10:15:1:2:2:0:0:-4:3:0:0:-1:-3:0:-5:-14:-12:-8:0:2:-8" + // gameBoard
-                        ":1:1:1:0:0:1:1:1:0" +  // turn, dice, cube
-                        ":1:1:25:0:0:0:0:0:2:0:0:0"); // color, direction, home, bar ... canMove = 2
-            } else if ("newgame3".equalsIgnoreCase(cmd)) {
-                parse("board:You:Nortally:3:0:0" + // players, score, match length
-                        ":0:2:0:0:0:0:-5:-1:-2:-2:0:0:4:-3:0:0:1:3:0:5:0:0:0:0:-2:0" + // gameBoard
-                        ":-1:6:5:0:0:1:1:1:0" +  // turn, dice, cube
-                        ":1:1:25:0:0:0:0:0:2:0:0:0"); // color, direction, home, bar ... canMove = 2
-            } else if ("newgame4".equalsIgnoreCase(cmd)) {
-                parse("board:You:Nortally:3:0:0" + // players, score, match length
-                        ":0:2:0:0:0:0:-5:-1:-2:-2:0:0:4:-3:0:0:1:3:0:5:0:0:0:0:-2:0" + // gameBoard
-                        ":-1:6:5:0:0:1:1:1:0" +  // turn, dice, cube
-                        ":-1:-1:25:0:0:0:0:0:2:0:0:0"); // color, direction, home, bar ... canMove = 2
-            } else {
-                parse("board:You:Nortally:1:0:0:0:-2:0:0:0:1:5:0:3:0:0:0:-5:4:0:0:0:-2:0:-4:-2:0:0:0:2:0:-1:1:3:0:0:1:1:1:0:-1:1:25:0:0:0:0:0:2:0:0:0");
-            }
-            listener.updateGameBoard(board);
-            return;
-        } // end testing routines
-
         if ("join".equals(cmd)) {
             listener.setPendingOffer(BoardView.NONE);
             if (!challengers.isEmpty()) {
@@ -305,7 +277,7 @@ class GameHelper implements TelnetHandlerListener {
         }
 
         //User status field meanings:
-        //    code name opponent watching ready away rating experience idle login hostname client email
+        //  code name opponent watching ready away rating experience idle login hostname client email
         if (line.startsWith(BOT_PATTERN)) {
             String[] words = line.split(" ");
             if (words[3].equals("-") && words[4].equals("1")) { // player is ready
@@ -318,8 +290,7 @@ class GameHelper implements TelnetHandlerListener {
 
         // if WHO info is not currently being skipped, start skipping it again
         if (line.equals(CLIP_WHO_INFO_END.toString()) && !FIBS_IGNORE.contains(CLIP_WHO_INFO)) {
-            FIBS_IGNORE.add(CLIP_WHO_INFO);
-            consoleSkip = updateConsoleSkip(FIBS_IGNORE);
+            disableWhoOutput();
         }
         // use FIBS_IGNORE to skip lines
         Matcher match = consoleSkip.matcher(line);
@@ -328,7 +299,7 @@ class GameHelper implements TelnetHandlerListener {
             return;
         }
         // strip FIBS codes if any and print to console
-        line = line.replaceFirst("^\\d{1,2}\\s?","");
+        line = line.replaceFirst(fibsCodes,"");
         if (!line.isEmpty()) {
             appendConsole(line);
         }
@@ -428,18 +399,16 @@ class GameHelper implements TelnetHandlerListener {
             for (int ix = 0; ix <= 4; ix++) {
                 try {
                     String value = match.group(ix);
-//                    Log.i(TAG, ix + ". " + value);
                 } catch (Exception e) {
-//                    Log.i(TAG, ix + e.getMessage());
-                    continue;
+                    Log.e(TAG, ix + e.getMessage());
                 }
             }
             if ("You".equals(match.group(1))) {
-                board.setState(board.SCORE_PLAYER, Integer.parseInt(match.group(3)));
-                board.setState(board.SCORE_OPPONENT, Integer.parseInt(match.group(4)));
+                board.setState(Board.SCORE_PLAYER, Integer.parseInt(match.group(3)));
+                board.setState(Board.SCORE_OPPONENT, Integer.parseInt(match.group(4)));
             } else {
-                board.setState(board.SCORE_PLAYER, Integer.parseInt(match.group(4)));
-                board.setState(board.SCORE_OPPONENT, Integer.parseInt(match.group(3)));
+                board.setState(Board.SCORE_PLAYER, Integer.parseInt(match.group(4)));
+                board.setState(Board.SCORE_OPPONENT, Integer.parseInt(match.group(3)));
             }
             listener.setScoreBoardMessage(board);
             updateGameBoard(board);
@@ -474,6 +443,7 @@ class GameHelper implements TelnetHandlerListener {
 
     // for resignationAccepted and winGame
     private void finishGame(String winner, int points) {
+        addCommand("oldmoves ");
         listener.setPendingOffer(BoardView.NONE);
         board.setGameOver(true);
         //listener.newMove(board);
@@ -489,14 +459,16 @@ class GameHelper implements TelnetHandlerListener {
             }
     }
 
+    /**
+     * Return the list of players accepting invitations.
+     */
     String getReady() {
         if (readyQueue.isEmpty()) {
             addCommand("rawwho ready");
             return "Looking for opponent";
         } else {
             int i = readyQueue.size() - 1;
-            String o = readyQueue.remove(i);
-            return o;
+            return readyQueue.remove(i);
         }
     }
 
@@ -560,9 +532,22 @@ class GameHelper implements TelnetHandlerListener {
         return Pattern.compile(stringBuilder.toString());
     }
 
+    /**
+     * Allow player status information to be sent to the console.
+     */
     @VisibleForTesting
     public void enableWhoOutput() {
         FIBS_IGNORE.remove(CLIP_WHO_INFO);
         consoleSkip = updateConsoleSkip(FIBS_IGNORE);
     }
+
+    /**
+     * Prevent player status information from being sent to the console.
+     */
+    @VisibleForTesting
+    public void disableWhoOutput() {
+        FIBS_IGNORE.add(CLIP_WHO_INFO);
+        consoleSkip = updateConsoleSkip(FIBS_IGNORE);
+    }
+
 }

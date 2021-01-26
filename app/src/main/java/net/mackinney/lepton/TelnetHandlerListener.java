@@ -1,7 +1,8 @@
 package net.mackinney.lepton;
 
+/** The GameHandler class will act as a listener for the TelnetHandler */
 interface TelnetHandlerListener {
-    /** The GameHandler will act as a listener for the TelnetHandler */
+
     void parse(String s);
 
     void appendConsole(String s);

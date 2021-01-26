@@ -7,7 +7,10 @@ import java.util.List;
 // TODO if man on bar, active die must be legal to bear on
 
 /**
- * Stages the player's move.
+ * This class is used to stage a move consisting of 1-4 individual checker movements (SingleMoves).
+ * It is responsible for validating potential moves to ensure that checker movements are permitted
+ * iff they will be accepted by FIBS (e.g., follow the rules of Backgammon).
+ *
  */
 class Move {
     private static final int NONE = -1;
@@ -17,9 +20,12 @@ class Move {
     private List<Integer> dice;
     private int activeDie;
 
+    /**
+     * Class constructor
+     */
     Move(Board board) {
         dice = new ArrayList<>(4); // Integer
-        moves = new ArrayList<>(); // SingleMove
+        moves = new ArrayList<>(); // Move.SingleMove
         activeDie = NONE;
         playerBar = board.getState(Board.BAR);
         oppBar = (playerBar == 0) ? 25 : 0;
@@ -45,13 +51,15 @@ class Move {
         }
     }
 
+    /**
+     * Returns the value of the die being used.
+     */
     int getActiveDie() {
         return activeDie;
     }
 
     /**
-     *
-     * @param d - the die to make active, if possible
+     * Designate the active die, if possible.
      */
     void resetActiveDie(Board b, int d) {
         if (b.hasMovesByDie(d)) {
@@ -87,10 +95,12 @@ class Move {
     // Forced moves
 
     /**
-     * Processes the checker tapped
+     * Try to move the tapped checker using the activeDie.
+     * Side effect: If the proposed move is valid, the local copy of the board is altered to reflect
+     * it, and the BoardView is updated.
      *
-     * @param p the point to become a source or destination
-     * @return true if the View should be updated, false otherwise
+     * @param p the proposed destination
+     * @return true if the proposed move is valid, false otherwise
      */
     boolean process(int p, Board b) {
         if (isReadyToSend(b) || !b.isPlayerPoint(p)) {
@@ -136,11 +146,17 @@ class Move {
         }
     }
 
+    /**
+     * Test whether the move has started
+     */
     boolean isStarted(Board b) {
         return b.isPlayerTurn() && b.getState(Board.DICE_PLAYER1) > 0 // Board.CAN_MOVE is valid
                 && moves.size() > 0 && b.getState(Board.CAN_MOVE) > 0; // we have at least 1 move
     }
 
+    /**
+     * Test whether the move is complete
+     */
     boolean isReadyToSend(Board b) {
         return b.isPlayerTurn() && b.getState(Board.DICE_PLAYER1) > 0 // Board.CAN_MOVE is valid
                 && moves.size() > 0 && moves.size() ==  b.getState(Board.CAN_MOVE); // we have enough moves
@@ -157,44 +173,24 @@ class Move {
         return buf.toString();
     }
 
-    private List<SingleMove> getMovePoints() {
-        return moves;
-    }
+    /**
+     * An ordered pair defining the move of one checker
+     */
+    private class SingleMove {
+        private int source;
+        private int dest;
 
-    private boolean isUsed(int die, int count) {
-        for (int ix = 0; ix < moves.size(); ix++) {
-            SingleMove s = moves.get(ix);
-            if (Math.abs(s.getDest() - s.getSource()) == die) {
-                if (count == 1) {
-                    return true;
-                } else {
-                    return count < moves.size();
-                }
-            }
+        SingleMove(int s, int d) {
+            source = s;
+            dest = d;
         }
-        return false;
-    }
 
-    private void setDice(int a, int b) {
-        dice.clear();
-        dice.add(a);
-        dice.add(b);
-        if (a == b) {
-            dice.add(a);
-            dice.add(a);
+        int getSource() {
+            return source;
+        }
+
+        int getDest() {
+            return dest;
         }
     }
-
-
-    // TODO ensure these have been addressed: Ellen's feedback:
-
-    // mutation: moveInProgress & targets are getting changed
-    // onTap has side effects not reflected by name
-    // setTargets: ditto
-
-    // List {3, 5} dice values
-    // method finds targets with not mutations/side effects
-
-    // BUG not preserving which dice
-
 }

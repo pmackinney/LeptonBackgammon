@@ -1,5 +1,6 @@
 package net.mackinney.lepton;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;  // https://stackoverflow.com/questions/31297246/activity-appcompatactivity-fragmentactivity-and-actionbaractivity-when-to-us
 // import androidx.fragment.app.FragmentActivity; // AppCompatActivity extends FragmentActivity
@@ -10,6 +11,7 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -23,19 +25,14 @@ import java.io.InputStreamReader;
  * The main activity for Lepton Backgammon, listener for GameHelper, manages all buttons.
  */
 public class MainActivity extends AppCompatActivity implements GameHelperListener {
-
-    public static final int CONSOLE_TEXTSIZE = 2048;
-
     private final String TAG = "MainActivity";
-    // HINT save state info: https://stackoverflow.com/questions/151777/how-to-save-an-activity-state-using-save-instance-state
-    // INITIALIZATION BELONGS IN METHOD (EXCEPTION CONTROL)
     GameHelper helper;
     private TextView consoleTextView;
     private EditText commandText;
     private BoardView boardView;
     private TextView oppScore;
     private TextView playerScore;
-    private PreferencesManager preferences;
+    private Preferences preferences;
     private static final Board GONE = null;
 
     @Override
@@ -44,15 +41,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main); // must come BEFORE findViewById commands
-//  WHY WAS THIS EVER HERE?
-//        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-//            Log.i(TAG, "getResources");
-//        }
-        // Programmatically hide titlebar:
-        //this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        // getSupportActionBar().hide();
-        // But, I'm doing it by applying a theme named NoActionBar
-        preferences = new PreferencesManager(this.getApplicationContext());
+        preferences = new Preferences(this.getApplicationContext());
         commandText = findViewById(R.id.commandText);
         consoleTextView = findViewById(R.id.console);
         consoleTextView.setMovementMethod(new ScrollingMovementMethod());
@@ -74,14 +63,12 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
             }
 
         } catch (IOException e) {
+            Log.e(TAG, e.getMessage());
         }
     }
 
-    private void logcatSaver() {
-
-    }
     /**
-     * Called when the user taps the Send button
+     * Send a command to GameHelper for processing.
      */
     public void sendCommand(View view) {
         String cmd = commandText.getText().toString();
@@ -90,21 +77,17 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
     }
 
     /**
-     * This button is always visible, its name depends on the Gammon Board's visibility
-     *  - Its name is Console when the Board is visible
-     *  - Its name is Board when the Board is hidden
-     * When the Gammon Board is hidden, the command field and Send buttons become visible
-     * @param view the Show/Hide button
+     * Toggle visibility of Board View and Console View
+     *  The button name is whichever View is hidden.
      */
     public void showHideBoardView(View view) {
-        //Button btn = findViewById(R.id.showHide);
         Button btn = (Button) view;
         if (boardView.getVisibility() == View.VISIBLE) {
             boardView.setVisibility(View.INVISIBLE);
             consoleTextView.setVisibility(View.VISIBLE);
             oppScore.setVisibility(View.INVISIBLE);
             playerScore.setVisibility(View.INVISIBLE);
-            ((Button) findViewById(R.id.send)).setVisibility(View.VISIBLE);
+            findViewById(R.id.send).setVisibility(View.VISIBLE);
             btn.setText(R.string.button_show);
         } else {
             updateGameBoard(null);
@@ -112,20 +95,27 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
             consoleTextView.setVisibility(View.INVISIBLE);
             oppScore.setVisibility(View.VISIBLE);
             playerScore.setVisibility(View.VISIBLE);
-            ((Button) findViewById(R.id.send)).setVisibility(View.GONE);
+            findViewById(R.id.send).setVisibility(View.GONE);
             btn.setText(R.string.button_hide);
         }
-//        updateScoreboard();
     }
 
-    private void toggleVisibility(View view) {
+    // TODO allow user to confirm or edit the name. This will replace special handling
+    //  of join() command and challengers[] array in GameHelper.addCommand() method
 
-    }
-
+    /**
+     * Send the 'join' command to GameHelper.
+     */
     public void join(View view) {
         helper.addCommand("join");
     }
 
+    /**
+     * Invite another player to a match.
+     * The dialog shows the name of a GammonBot that has recently been reported ready to play,
+     * along with a match length value. The match length defaults to the previous value, or 5
+     * by default. The player may edit either field.
+     */
     public void invite(View view) {
         // create an alert builder
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -156,8 +146,10 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         dialog.show();
     }
 
+    /**
+     * Offer to resign, either Normal, Gammon, or Backgammon.
+     */
     // https://medium.com/@suragch/adding-a-list-to-an-android-alertdialog-e13c1df6cf00
-    // TODO hide this button when not playing
     public void resign(View view) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Resign the game?");
@@ -182,37 +174,23 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         dialog.show();
     }
 
-    // https://stackoverflow.com/questions/6173400/how-to-hide-a-button-programmatically
-    //    playButton = (Button) findViewById(R.id.play);
-    //    playButton.setVisibility(View.VISIBLE);
-    //    playButton.setOnClickListener(new OnClickListener() {
-    //      @Override
-    //      public void onClick(View v) {
-    //          //when play is clicked show stop button and hide play button
-    //          playButton.setVisibility(View.GONE);
-    //          stopButton.setVisibility(View.VISIBLE);
-    //      }
-    //    });
+    /**
+     * Toggle the setting of the FIBS autoroll feature and roll the dice.
+     */
     public void toggleAutoroll(View view) {
         helper.addCommand("toggle double");
         helper.roll();
     }
 
-    // https://suragch.medium.com/creating-a-custom-alertdialog-bae919d2efa5
-
     /**
-     * Displays a login dialog with stored user name and password.
-     * On Connect, the displayed user name and login are saved, and a login to FIBS is attempted
-     * with these credentials.
-     *
-     * The TelnetHandler will call back to update the button name after a successful login,
-     * or whenever a logout is attempted.
-     *
-     * @param view
+     * Login or Logout
+     * If not logged in, the player is prompted to log in with the previous username and password
+     * values, if available. If logged in, the player is logged out and the telnet session is
+     * terminated.
      */
     public void loginLogout(View view) {
         Button btn = (Button) view;
-        if ("Login".equals(btn.getText())) {
+        if ("Login".equals(btn.getText().toString())) {
             // create an alert builder
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("Login Info");
@@ -228,9 +206,9 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     // send data from the AlertDialog to the Activity
-                    EditText userName = (EditText) loginLayout.findViewById(R.id.userName);
+                    EditText userName = loginLayout.findViewById(R.id.userName);
                     String name = userName.getText().toString();
-                    EditText password = (EditText) loginLayout.findViewById(R.id.password);
+                    EditText password = loginLayout.findViewById(R.id.password);
                     String pw = password.getText().toString();
                     updateLoginData(userName.getText().toString(), password.getText().toString());
                     helper.addCommand("connect " + name + " " + pw);
@@ -247,7 +225,6 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         }
     }
 
-    // Set the button name to "Logout" if logged in and vice versa TODO: Thesis writeup, why runOnUIThread for some, not login button
     @Override
     public void updateLoginButton(final boolean isLoggedIn) {
         runOnUiThread(new Runnable() {
@@ -269,7 +246,6 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         });
     }
 
-    // do something with the data coming from the AlertDialog
     private void updateLoginData(String username, String password) {
         preferences.setUser(username);
         preferences.setPassword(password);
@@ -292,8 +268,8 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
             @Override
             public void run() {
                 if (board != null) {
-                    oppScore.setText(board.getOppName() + "\n" + board.getState(board.SCORE_OPPONENT) + "/" + board.getState(board.MATCH_LENGTH) + (board.isGameOver() ? " Final" : ""));
-                    playerScore.setText(helper.getPlayerName() + "\n" + board.getState(board.SCORE_PLAYER) + "/" + board.getState(board.MATCH_LENGTH));
+                    oppScore.setText(board.getOppName() + "\n" + board.getState(Board.SCORE_OPPONENT) + "/" + board.getState(Board.MATCH_LENGTH) + (board.isGameOver() ? " Final" : ""));
+                    playerScore.setText(helper.getPlayerName() + "\n" + board.getState(Board.SCORE_PLAYER) + "/" + board.getState(Board.MATCH_LENGTH));
                     oppScore.setVisibility(View.VISIBLE);
                     oppScore.invalidate();
                     playerScore.setVisibility(View.VISIBLE);
@@ -359,7 +335,9 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
 
     @Override
     public void quit() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            this.finishAndRemoveTask();
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             this.finishAffinity();
         }
     }

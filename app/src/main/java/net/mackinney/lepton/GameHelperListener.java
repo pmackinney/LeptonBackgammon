@@ -1,7 +1,7 @@
 package net.mackinney.lepton;
 
+/** The MainActivity class will act as a listener for the GameHelper */
 interface GameHelperListener {
-    /** The MainActivity will act as a listener for the GameHelper */
 
     void appendConsole(String s);
 

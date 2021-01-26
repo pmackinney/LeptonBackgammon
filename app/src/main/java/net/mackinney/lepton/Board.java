@@ -82,65 +82,11 @@ class Board {
         // +1 at end limit because last arg of copyOfRange(int[] original, from, to) is EXCLUSIVE!
         boardPoints = Arrays.copyOfRange(state, BOARD_START, BOARD_END + 1);
     }
-//    void setBoard(String line, Boolean saveLine) {
-//        String[] terms = line.split(":");
-//        if (terms.length != NUM_CLIP_FIELDS + 1) {
-//            return false;
-//        }
-//        if (saveLine) {
-//            lastLine = line;
-//        }
-//        playerName = terms[PLAYER];
-//        oppName = terms[OPPONENT];
-//        for (int ix = 3; ix < NUM_CLIP_FIELDS; ix++) {
-//            state[ix] = Integer.parseInt(terms[ix]);
-//        }
-//        boardPoints = Arrays.copyOfRange(state, BOARD_START, BOARD_END + 1); // copyOfRange(int[] original, from, to) 'to' is EXCLUSIVE!
-//        return true;
-//    }
-//
-//    boolean revert() {
-//        if (lastLine != null && lastLine.startsWith("board:")) {
-//            return setBoard(lastLine, false);
-//        }
-//        return false;
-//    }
-//
+
     String getLastLine() {
         return lastLine;
     }
-//
-//    protected void setDice(String name, int d1, int d2) {
-//        // valide d1 and d2 values, 1-6
-//        if (0 < d1 && d1 < 7 && 0 < d2 && d2 < 7) {
-//            if (playerName.equals(name)) {
-//                state[DICE_PLAYER1] = d1;
-//                state[DICE_PLAYER2] = d2;
-//            } else if (oppName.equals(name)) {
-//                state[DICE_OPP1] = d1;
-//                state[DICE_OPP2] = d2;
-//            }
-//        }
-//    }
-//
-//    protected void setCube(int c) {
-//        if (c == 1 || c == 2 || c == 4 || c == 8 || c == 16 || c == 32) {
-//            state[CUBE] = c;
-//        }
-//    }
-//
-//    void setScore(String player, int score) {
-//        if ("You.".equals(player)) {
-//            state[SCORE_PLAYER] += score;
-//        } else {
-//            state[SCORE_OPPONENT] += score;
-//        }
-//    }
-//
-//    String getPlayerName() {
-//        return playerName;
-//    }
-//
+
     String getOppName() {
         return oppName;
     }
@@ -159,9 +105,9 @@ class Board {
 
     public boolean pointIsAvailable(int p) {
         if (p < 1) { // home is never blockaded, bar is always blockaded
-            return DIRECTION == -1;
+            return state[DIRECTION] == -1;
         } else if (p > 24) {
-            return DIRECTION == 1;
+            return state[DIRECTION] == 1;
         } else if (Math.abs(boardPoints[p]) < 2) { // less that 2 checkers?
             return true;
         } else if (boardPoints[p] * state[COLOR] > 0) { // is point our color?
@@ -170,7 +116,7 @@ class Board {
         return false;
     }
 
-    // player may bear off is not checkers outside home (points 1-6 or 19-24)
+    // player may bear off if not checkers outside home (points 1-6 or 19-24)
     public boolean playerMayBearOff() {
         if (state[ON_BAR_PLAYER] > 0) {
             return false;
@@ -185,38 +131,6 @@ class Board {
             return true;
         }
     }
-//    boolean pointIsAvailable(int p) {
-//        if (p < 1) { // home is never blockaded, bar is always blockaded
-//            return (DIRECTION == -1) ? true : false;
-//        } else if (p > 24) {
-//            return (DIRECTION == 1) ? true : false;
-//        } else {
-//            return Math.abs(boardPoints[p]) < 2 || boardPoints[p] * state[COLOR] > 0;
-//        }
-//    }
-//
-//    boolean playerMayBearOff() {
-//        if (state[ON_HOME_PLAYER] > 0) {
-//            return true;
-//        } else if (state[ON_BAR_PLAYER] > 0) {
-//            return false;
-//        } else {
-//            // initialize test boundaries for home is Quadrant I
-//            int start = 1;
-//            int end = 3 * BoardView.NUM_POINTS_PER_QUADRANT + 1;
-//            // adjust if home Quadrant IV
-//            if (state[DIRECTION] == -1) {
-//                start += BoardView.NUM_POINTS_PER_QUADRANT;
-//                end += BoardView.NUM_POINTS_PER_QUADRANT;
-//            }
-//            for (int ix = start; ix <= end; ix++) {
-//                if (isPlayerPoint(ix)) {
-//                    return false;
-//                }
-//            }
-//            return true;
-//        }
-//    }
 
     // NOTE: This value is only valid on the first board after the double offer
     boolean wasDoubled() {
@@ -236,7 +150,6 @@ class Board {
     }
 
     boolean hasMovesByDie(int d) {      // we expect d in [1, 2, ... 6]
-        //if (state[COLOR] == state[TURN]) { // TODO is it necessary to ensure that it's the player's turn here?
         if (boardPoints[state[BAR]] != 0) {            // if on bar, must move from bar
             return pointIsAvailable(state[BAR] + state[DIRECTION] * d);
         } else {                                // other test all points except home and bar
@@ -244,9 +157,13 @@ class Board {
                 if (isPlayerPoint(ix)) {
                     int target = ix + state[DIRECTION] * d;
                     if (pointIsAvailable(target)) {
-                        if ((state[HOME] == 0 && target <= state[HOME])
+                        if ((state[HOME] == 0 && target <= state[HOME]) // if target is home
                                 || (state[HOME] == NUM_POINTS - 1 && target >= state[HOME])) {
-                            return playerMayBearOff(); // if target is in home, valid move only if bearing off
+                            if (playerMayBearOff()) {                   // valid if bearing off
+                                return true;
+                            } else {
+                                continue;                               // keep looking
+                            }
                         } else {
                             return true;               // otherwise valid
                         }
@@ -256,41 +173,6 @@ class Board {
         }
         return false;
     }
-
-//    boolean hasMovesByDie(int d) {      // we expect d in [1, 2, ... 6]
-//        if (state[COLOR] == state[TURN]) { // TODO is it necessary to ensure that it's the player's turn here?
-//            if (state[DIRECTION] == 1) { // TODO consolidate branches as child method?
-//                int start = 0; // , bar is 0, home is 25
-//                int end = (boardPoints[0] > 0) ? 1 : 25; // if on bar, must move from bar
-//                for (int ix = start; ix < end; ix++) {
-//                    if (isPlayerPoint(ix)) {
-//                        int target = ix + state[DIRECTION] * d;
-//                        if (target >= 25) { // home
-//                            return true;
-//                        } else {
-//                            if (pointIsAvailable(target))
-//                                return true;
-//                        }
-//                    }
-//                }
-//            } else if (state[DIRECTION] == -1) {
-//                int start = 25; // bar is 25, we go from 25-1
-//                int end = (boardPoints[25] > 0) ? 24 : 0; // if on bar, can only move from bar
-//                for (int ix = start; ix > end; ix--) {
-//                    if (isPlayerPoint(ix)) {
-//                        int target = ix + state[DIRECTION] * d;
-//                        if (target <= 0) { // home
-//                            return true;
-//                        } else {
-//                            if (pointIsAvailable(target))
-//                                return true;
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        return false;
-//    }
 
     boolean isGameOver() {
         return gameOver;

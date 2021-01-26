@@ -2,6 +2,10 @@ package net.mackinney.lepton;
 
 import java.util.regex.Pattern;
 
+/**
+ * User settings defined and supported by FIBS.
+ * This class is not currently used, but will be in future versions.
+ */
 class Settings {
     /* container for the settings available through 'toggle' and 'set'
 

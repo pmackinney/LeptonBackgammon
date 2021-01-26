@@ -2,7 +2,7 @@
     <string name="app_name">Lepton</string>
     <string name="edit_message">command</string>
     <string name="button_send">Send</string>
-    <string name="about_text">Lepton Backgammon\nVersion 0.0.3\nCopyright 2020 Paul Mackinney\n</string>
+    <string name="about_text">Lepton Backgammon\nVersion beta 4\nCopyright 2020 Paul Mackinney\n</string>
     <string name="backgammon_board"> </string>
     <string name="button_show">Board</string>
     <string name="button_hide">Console</string>

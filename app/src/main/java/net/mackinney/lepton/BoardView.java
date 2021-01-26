@@ -17,7 +17,6 @@ import androidx.appcompat.widget.AppCompatImageView;
 
 import net.mackinney.lepton.R;
 
-@SuppressWarnings("SpellCheckingInspection")
 /**
  * Keeps the gameboard current, handles touch events.
  */
@@ -85,34 +84,16 @@ class BoardView extends AppCompatImageView {
     private static final int RAW_TILE_WIDTH = 169;
     private static final int RAW_TILE_HEIGHT = 142;
     private static final int RAW_TOP_LEFT_X = 216; // top-left of 1st tile, BG point 13
-    //private static final int RAW_TOP_LEFT_Y = 430; //        " 445, 440, 430
     private static final int RAW_TOP_LEFT_Y = 50;
-    private static final float RAW_RIGHT_EDGE_SPACER = 84.5F;
-    //private static final int RAW_SCOREBOARD_HEIGHT = 368;
-    private static final int RAW_SCOREBOARD_HEIGHT = 50;
     private static final float RAW_BOARD_WIDTH = 2704F; // float for scaling computations
-    //private static final float RAW_BOARD_HEIGHT = 2048F; // float for scaling computations
     private static final float RAW_BOARD_HEIGHT = 1680F; // float for scaling computations
-    private static final int BG_YELLOW = Color.parseColor("#F4E1BC");
     private static final int BROWN = -1;
-    private static final int WHITE = 1;
 
     // mutable properties to be scaled
-    private float cubeX = 12; // standard column for cube
-//    private float xOffset;
-    private float topLeftX;
+    private float cubeX;
     private float topLeftY;
     private float tileWidth;
     private float tileHeight;
-    private float rightEdgeSpacer;
-    private float messageRight;
-
-    // Test properties
-    private int x_displayWidth;
-    private float x_viewWidth;
-    private float x_canvasWidth;
-    private float x_bitmapWidth;
-    private float x_bitmapScaledWidth;
 
     // properties for game logic
     private static final int BAR1 = 0;
@@ -157,10 +138,11 @@ class BoardView extends AppCompatImageView {
     private float myLeft = -1;
     private float myTop = -1;
 
+    /**
+     * The Backgammon board
+     */
     public BoardView(Context context, AttributeSet attrs) {
         super(context, attrs);
-
-        topLeftX = scale(RAW_TOP_LEFT_X);
         topLeftY = scale(RAW_TOP_LEFT_Y);
         tileWidth = scale(RAW_TILE_WIDTH);
         tileHeight = scale(RAW_TILE_HEIGHT);
@@ -173,12 +155,21 @@ class BoardView extends AppCompatImageView {
         board = helper.getBoard();
     }
 
-    void newMove(Board b) {
-        move = new Move(b);
+    /**
+     * Begins a new move
+     */
+    void newMove(Board board) {
+        move = new Move(board);
     }
 
+    /**
+     * Flag to check if we should display Cube
+     */
     void setPendingOffer(int state) { offerPending = state; }
 
+    /**
+     * Flag to check if we should display Resignation level
+     */
     void setPendingOffer(int state, int level) { offerPending = state; offerLevel = level; }
 
     @Override
@@ -314,25 +305,9 @@ class BoardView extends AppCompatImageView {
         return NONE;
     }
 
-    /* The gameBoard is exactly 16 tiles wide. The regions are:
-         0-0.25         dead
-         0.25-1.25      left side gutter (doubling cube's home)
-         1.25 - 1.5     dead
-         1.5 - 2.5
-           through      13 columns for points and bar
-         12.5 - 13.5
-         13.5-15        dead
-         13.75-14.75    right side gutter (home)
-         14.75-15       dead
-    */
-
-
-    // TODO unit tests - @VisibleForTesting
-
-    /**
-     * @param x
-     * @return TODO
-     * Returns   0 cube column
+    /*
+     * Key
+     * 0 cube column
      * 1-6 points
      * 7 bar
      * 8-13 points
@@ -351,10 +326,6 @@ class BoardView extends AppCompatImageView {
         return -1;
     }
 
-    /**
-     * @param y
-     * @return -1 is returned if the click isn't in a valid row
-     */
     private int getRow(float y) {
         float unit = getHeight() * RAW_TILE_HEIGHT / RAW_BOARD_HEIGHT;
         float startY = getHeight() * RAW_TOP_LEFT_Y / RAW_BOARD_HEIGHT;
@@ -378,15 +349,16 @@ class BoardView extends AppCompatImageView {
         return x * bitmap.getWidth() / RAW_BOARD_WIDTH;
     }
 
-    void updateGameBoard(Board b) {
-        if (b != null) {
-            board = b;
-        } else {
-//            Log.e(TAG, "update gameboard with null board");
+    /**
+     * Refresh the board
+     */
+    void updateGameBoard(Board board) {
+        if (board != null) {
+            this.board = board;
         }
-        if (board.getState(Board.TURN) == 0) {
+        if (this.board.getState(Board.TURN) == 0) {
             offerPending = NONE;
-        } else if (board.wasDoubled()) {
+        } else if (this.board.wasDoubled()) {
             offerPending = DOUBLE_OFFER;
         }
         Bitmap gb = bitmap.copy(Bitmap.Config.RGB_565, true);
@@ -394,19 +366,14 @@ class BoardView extends AppCompatImageView {
         // Calculate the horizontal offset (assume board bitmap is centered)
         DisplayMetrics displayMetrics = new DisplayMetrics();
         ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-        x_displayWidth = displayMetrics.widthPixels;
-        x_viewWidth = this.getWidth();
-        x_canvasWidth = canvas.getWidth();
-        x_bitmapWidth = gb.getWidth();
-        x_bitmapScaledWidth = gb.getScaledWidth(canvas);
-        if (board.getState(Board.DIRECTION) == -1) {
+        if (this.board.getState(Board.DIRECTION) == -1) {
             canvas.drawBitmap(point_1_bottom, 0, 0, null);
         } else {
             canvas.drawBitmap(point_1_top, 0, 0, null);
         }
 
         // draw checkers
-        int[] bp = board.getBoardPoints();
+        int[] bp = this.board.getBoardPoints();
         Bitmap checker = null;
         for (int p = 0; p < bp.length; p++) { // iterate over points and bar
             if (bp[p] != 0) {
@@ -418,7 +385,7 @@ class BoardView extends AppCompatImageView {
                 if (p == BAR1 || p == BAR2) {
                     drawBarPoint(canvas, p, Math.abs(bp[p]), checker);
                 } else {
-                    drawBoardPoint(canvas, p, Math.abs(bp[p]), board.getState(Board.DIRECTION), checker);
+                    drawBoardPoint(canvas, p, Math.abs(bp[p]), this.board.getState(Board.DIRECTION), checker);
                 }
             }
         }
@@ -439,7 +406,7 @@ class BoardView extends AppCompatImageView {
         this.setImageBitmap(gb);
         this.invalidate();
         if (this.getVisibility() == View.VISIBLE) {
-            helper.listener.setScoreBoardMessage(b);
+            helper.listener.setScoreBoardMessage(board);
         }
     }
 
@@ -497,11 +464,9 @@ class BoardView extends AppCompatImageView {
                 c.drawBitmap(d, diceX, diceY, null);
                 c.drawBitmap(d, diceX + tileWidth, diceY, null);
             } else { // player's roll is non-zero
-                //computeActiveDie(board); MOVE SHOULD BE INITIALIZED, INCLUDING ACTIVE DIE, WHEN DICE ARE ROLLED
                 if (move == null) {
                     newMove(board);
                 }
-//                Log.i(TAG, "drawDice: player has rolled and active die is: " + move.getActiveDie());
                 bitmaps = (board.getState(Board.COLOR) == BROWN) ? browndie : whitedie;
                 int d1 = board.getState(Board.DICE_PLAYER1);
                 int d2 = board.getState(Board.DICE_PLAYER2);
@@ -644,6 +609,10 @@ class BoardView extends AppCompatImageView {
         }
     }
 
+    /**
+     * Handles resignation initiated by opponent (by parsing FIBS output)
+     * or by player (received from Resign button dialog)
+     */
     public void handleResignation(String user, int level) {
         offerLevel = level + 1; // adjust icon index  N = 1, G = 2, B = 3
         if ("Player".equals(user)) {
@@ -662,5 +631,8 @@ class BoardView extends AppCompatImageView {
         offerLevel = 0;
     }
 
+    /**
+     * Display the splash screen
+     */
     public void setBackgroundSplash() { this.setImageBitmap(splash); }
 }
