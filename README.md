@@ -1,4 +1,3 @@
-# LeptonBackgammon
 Lepton Backgammon
 =================
 
