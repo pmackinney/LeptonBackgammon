@@ -54,10 +54,12 @@ class GameHelper implements TelnetHandlerListener {
     private final List<String> commandList = new ArrayList<>();
     private TelnetHandler fibs;
     private Board board;
+    private String opponent = "";
     private boolean moveHasBeenInitialized = false;
     private static final List<String> challengers = new ArrayList<>();
+    private static final char CHALLENGE_SEP = ':';
     private static final List<String> readyQueue = new ArrayList<>();
-    private static final int MAX_READY_QUEUE = 5; // How many potential opponents to keep in queue
+    private static final int MAX_READY_QUEUE = 5; // How many challengers to keep in queue
     GameHelperListener listener; // MainActivity is the View manager
 
     // Regex patterns
@@ -98,12 +100,14 @@ class GameHelper implements TelnetHandlerListener {
     //    points for user1: n
     //    points for user2: n
     @VisibleForTesting
-    private static final Pattern resume = Pattern.compile("(Your running match was loaded.| Are you there\\?)");
+    private static final Pattern resume = Pattern.compile("([a-zA-Z_]+) has joined you. Your running match was loaded.");
+    // | Are you there\?)
 
     //    Nortally wants to play a 3 point match with you.  (Nortally, 3)
     // Type 'join Nortally' to accept.
     @VisibleForTesting
-    private static final Pattern challenge = Pattern.compile("Type 'join ([a-zA-Z_]+)' to accept.");
+    private static final Pattern challenge = Pattern.compile("([a-zA-Z_]+) wants to play a (\\d+) point match with you.");
+//    private static final Pattern challenge = Pattern.compile("Type 'join ([a-zA-Z_]+)' to accept.");
 
     // > ** You are now playing a 3 point match with Nortally (3, Nortally)
     @VisibleForTesting
@@ -223,11 +227,8 @@ class GameHelper implements TelnetHandlerListener {
     public synchronized void addCommand(String cmd) {
         if ("join".equals(cmd)) {
             listener.setPendingOffer(BoardView.NONE);
-            if (!challengers.isEmpty()) {
-                cmd += " " + challengers.get(challengers.size() - 1); // For now, most recent challenger. TODO dialog to let user pick
-            }
             challengers.clear();
-        } else if (cmd.startsWith("who") || cmd.startsWith("rawwho")) {
+        } else if (cmd.startsWith("who ") || cmd.startsWith("rawwho ")) { // TODO define constants
             FIBS_IGNORE.remove(CLIP_WHO_INFO);
             consoleSkip = updateConsoleSkip(FIBS_IGNORE);
         }
@@ -314,7 +315,7 @@ class GameHelper implements TelnetHandlerListener {
         }
         match.usePattern(challenge);
         if (match.find()) {
-            addChallenger(match.group(1));
+            addChallenger(match.group(1) + CHALLENGE_SEP + match.group(2));
             return;
         }
 
@@ -334,6 +335,7 @@ class GameHelper implements TelnetHandlerListener {
 
         match.usePattern(resume);
         if (match.find()) {
+            opponent = match.group(1);
             addCommand("board");
             board.setGameOver(false);
             return;
@@ -341,6 +343,7 @@ class GameHelper implements TelnetHandlerListener {
 
         match.usePattern(start);
         if (match.find()) {
+            opponent = match.group(1);
             moveHasBeenInitialized = false;
             board.setGameOver(false);
             return;
@@ -443,10 +446,12 @@ class GameHelper implements TelnetHandlerListener {
 
     // for resignationAccepted and winGame
     private void finishGame(String winner, int points) {
-        addCommand("oldmoves ");
+        if (opponent.length() > 0) {
+            addCommand("oldmoves " + opponent);
+            opponent = "";
+        }
         listener.setPendingOffer(BoardView.NONE);
         board.setGameOver(true);
-        //listener.newMove(board);
         listener.setScoreBoardMessage(board); // This is where the score can be FINAL
     }
 
@@ -472,9 +477,8 @@ class GameHelper implements TelnetHandlerListener {
         }
     }
 
-    private void newMatch(String opp, String matchLength) {
-        //board = new Board(MY_USER, opponent, Integer.parseInt(matchLength));
-        //opponent = opp;
+    private void newMatch(String opp, String matchLength) { // mojospud wants to play a 5 point match with you.
+        opponent = opp;
         // TODO implement dialog-based invitations/responses to invitations
     }
 
@@ -492,6 +496,18 @@ class GameHelper implements TelnetHandlerListener {
 
     private List getChallengers() {
         return challengers;
+    }
+
+    String[] getChallenger() {
+        int ix = challengers.size();
+        String[] result = new String[]{"",""};
+        if (ix > 0) {
+            String challenger = challengers.remove(ix - 1);
+            int sep = challenger.indexOf(CHALLENGE_SEP);
+            result[0] = challenger.substring(0, sep);
+            result[1] = challenger.substring(sep + 1);
+        }
+        return result;
     }
 
     private void addChallenger(String s) {

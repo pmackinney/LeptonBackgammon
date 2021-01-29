@@ -18,14 +18,11 @@
         android:text=""
         tools:ignore="LabelFor" />
 
-    <EditText
+    <TextView
         android:id="@+id/match_length"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:importantForAutofill="no"
-        android:inputType="number"
-        android:selectAllOnFocus="true"
         android:singleLine="true"
-        android:text="@string/game_length"
+        android:text=""
         tools:ignore="LabelFor" />
 </LinearLayout>

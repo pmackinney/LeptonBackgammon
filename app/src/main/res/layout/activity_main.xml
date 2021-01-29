@@ -62,7 +62,7 @@
     <!-- net/mackinney.lepton.BoardView -->
     <TextView
         android:id="@+id/console"
-        style="@style/TextViewStyle"
+        style="@style/ConsoleStyle"
         android:layout_width="wrap_content"
         android:layout_height="620dp"
         android:layout_alignParentBottom="true"

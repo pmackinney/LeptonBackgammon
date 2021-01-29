@@ -2,7 +2,9 @@
     <string name="app_name">Lepton</string>
     <string name="edit_message">command</string>
     <string name="button_send">Send</string>
-    <string name="about_text">Lepton Backgammon\nVersion beta 4\nCopyright 2020 Paul Mackinney\n</string>
+    <string name="full_name">Lepton Backgammon</string>
+    <string name="version">b5</string>
+    <string name="copyright">Copyright 2020 Paul Mackinney\nLepton Image Tatyana Ryevzina https://www.instagram.com/teabugart</string>
     <string name="backgammon_board"> </string>
     <string name="button_show">Board</string>
     <string name="button_hide">Console</string>
@@ -21,4 +23,7 @@
     <string name="username_text">username</string>
     <string name="prompt_password_text">password</string>
     <string name="invite_title">Start new match</string>
+    <string name="join_title">Accept invitaiton</string>
+    <string name="button_cancel">Cancel</string>
+    <string name="button_connect">Connect</string>
 </resources>

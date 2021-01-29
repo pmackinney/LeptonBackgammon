@@ -102,15 +102,15 @@ class Board {
     boolean isPlayerPoint(int p) {
         return boardPoints[p] * state[COLOR] > 0;
     }
-
+    
     public boolean pointIsAvailable(int p) {
-        if (p < 1) { // home is never blockaded, bar is always blockaded
-            return state[DIRECTION] == -1;
-        } else if (p > 24) {
-            return state[DIRECTION] == 1;
-        } else if (Math.abs(boardPoints[p]) < 2) { // less that 2 checkers?
+        if (state[HOME] == 0 && p <= 0) {
             return true;
-        } else if (boardPoints[p] * state[COLOR] > 0) { // is point our color?
+        } else if (state[HOME] != 0 && p >= state[HOME]) {
+            return true;
+        } else if (boardPoints[p] * state[COLOR] >= 0) { // our point or empty
+            return true;
+        } else if (boardPoints[p] + state[COLOR] == 0) { // opponent's blot
             return true;
         }
         return false;
@@ -121,8 +121,8 @@ class Board {
         if (state[ON_BAR_PLAYER] > 0) {
             return false;
         } else {
-            int start = (state[DIRECTION] == 1) ? QUADRANT_I_START : QUADRANT_II_START;
-            int end = start + BoardView.NUM_POINTS_PER_QUADRANT + 1;
+            int start = (state[DIRECTION] == 1) ? QUADRANT_I_START : QUADRANT_II_START; // 1 or 7
+            int end = start + 3 * BoardView.NUM_POINTS_PER_QUADRANT - 1;                // 18 or 24
             for (int ix = start; ix <= end; ix++) {
                 if (isPlayerPoint(ix)) {
                     return false;
@@ -152,8 +152,8 @@ class Board {
     boolean hasMovesByDie(int d) {      // we expect d in [1, 2, ... 6]
         if (boardPoints[state[BAR]] != 0) {            // if on bar, must move from bar
             return pointIsAvailable(state[BAR] + state[DIRECTION] * d);
-        } else {                                // other test all points except home and bar
-            for (int ix = 1; ix <= NUM_POINTS - 2; ix++) {
+        } else {
+            for (int ix = 1; ix <= NUM_POINTS - 2; ix++) { // -2 excluding home and bar
                 if (isPlayerPoint(ix)) {
                     int target = ix + state[DIRECTION] * d;
                     if (pointIsAvailable(target)) {
@@ -161,8 +161,6 @@ class Board {
                                 || (state[HOME] == NUM_POINTS - 1 && target >= state[HOME])) {
                             if (playerMayBearOff()) {                   // valid if bearing off
                                 return true;
-                            } else {
-                                continue;                               // keep looking
                             }
                         } else {
                             return true;               // otherwise valid

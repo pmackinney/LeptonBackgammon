@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Base application theme. -->
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.Light.DarkActionBar">
@@ -10,7 +10,7 @@
         <item name="windowNoTitle">true</item>
     </style>
 
-    <style name="TextViewStyle">
+    <style name="ConsoleStyle">
         <item name="android:paddingLeft">4dp</item>
         <item name="android:paddingBottom">4dp</item>
         <item name="android:textColor">#ffffff</item>
@@ -19,6 +19,7 @@
         <item name="android:shadowDx">1</item>
         <item name="android:shadowDy">1</item>
         <item name="android:shadowRadius">1</item>
+        <item name="windowActionModeOverlay">true</item>
     </style>
 
     <style name="ScoreBoardStyle">

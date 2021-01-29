@@ -1,6 +1,5 @@
 package net.mackinney.lepton;
 
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;  // https://stackoverflow.com/questions/31297246/activity-appcompatactivity-fragmentactivity-and-actionbaractivity-when-to-us
 // import androidx.fragment.app.FragmentActivity; // AppCompatActivity extends FragmentActivity
@@ -46,6 +45,8 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         consoleTextView = findViewById(R.id.console);
         consoleTextView.setMovementMethod(new ScrollingMovementMethod());
         consoleTextView.setTextColor(Color.BLACK);
+        String consoleMessage = getString(R.string.full_name) + "\nVersion " + getString(R.string.version) + "\n" + getString(R.string.copyright) + "\n";
+        consoleTextView.setText(consoleMessage);
         boardView = findViewById(R.id.boardView);
         oppScore = findViewById(R.id.oppScore);
         playerScore = findViewById(R.id.playerScore);
@@ -100,16 +101,6 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         }
     }
 
-    // TODO allow user to confirm or edit the name. This will replace special handling
-    //  of join() command and challengers[] array in GameHelper.addCommand() method
-
-    /**
-     * Send the 'join' command to GameHelper.
-     */
-    public void join(View view) {
-        helper.addCommand("join");
-    }
-
     /**
      * Invite another player to a match.
      * The dialog shows the name of a GammonBot that has recently been reported ready to play,
@@ -124,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         final View inviteLayout = getLayoutInflater().inflate(R.layout.invite, null); // use of null is not recommended, but I don't know what else to put here.
         ((EditText) inviteLayout.findViewById(R.id.opponent)).setText(helper.getReady());
         final int invitationLength = preferences.getInvitationLength();
-        ((EditText) inviteLayout.findViewById(R.id.game_length)).setText(Integer.toString(invitationLength)); // "" + int is an abstraction violation.
+        ((EditText) inviteLayout.findViewById(R.id.match_length)).setText(Integer.toString(invitationLength)); // "" + int is an abstraction violation.
         builder.setView(inviteLayout);
         // add a button
         builder.setPositiveButton("Invite", new DialogInterface.OnClickListener() {
@@ -132,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
             public void onClick(DialogInterface dialog, int which) {
                 // send data from the AlertDialog to the Activity
                 String opp = ((EditText) inviteLayout.findViewById(R.id.opponent)).getText().toString();
-                String gl = ((EditText) inviteLayout.findViewById(R.id.game_length)).getText().toString();
+                String gl = ((EditText) inviteLayout.findViewById(R.id.match_length)).getText().toString();
                 if (Integer.parseInt(gl) != invitationLength) {
                     preferences.setInvitationLength(Integer.parseInt(gl));
                     preferences.commit();
@@ -202,7 +193,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
             ((EditText) loginLayout.findViewById(R.id.password)).setText(preferences.getPassword());
             builder.setView(loginLayout);
             // add a button
-            builder.setPositiveButton("Connect", new DialogInterface.OnClickListener() {
+            builder.setPositiveButton(getString(R.string.button_connect), new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     // send data from the AlertDialog to the Activity
@@ -214,7 +205,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
                     helper.addCommand("connect " + name + " " + pw);
                 }
             });
-            builder.setNegativeButton("Cancel", null);
+            builder.setNegativeButton(getString(R.string.button_cancel), null);
             // create and show the alert dialog
             AlertDialog dialog = builder.create();
             dialog.show();
@@ -223,6 +214,36 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
             setScoreBoardMessage(GONE);
             boardView.setBackgroundSplash();
         }
+    }
+
+    /**
+     * Accept a match challenge.
+     * The player may edit the name, and if there is a challenge matching that name,
+     * it will be accepted. The match length reflects the original invitation and
+     * is not guaranteed to be accurate.
+     */
+    public void join(View view) {
+        Button btn = (Button) view;
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getString(R.string.button_join));
+        final View joinLayout = getLayoutInflater().inflate(R.layout.join, null);
+        String[] challenger = helper.getChallenger();
+        ((EditText) joinLayout.findViewById(R.id.opponent)).setText(challenger[0]);
+        ((TextView) joinLayout.findViewById(R.id.match_length)).setText(challenger[1]);
+        builder.setView(joinLayout);
+        builder.setPositiveButton("Join", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                EditText opponent = joinLayout.findViewById(R.id.opponent);
+                String name = opponent.getText().toString();
+                TextView matchLength = joinLayout.findViewById(R.id.match_length);
+                String length = matchLength.getText().toString();
+                helper.addCommand("join " + opponent.getText().toString());
+            }
+        });
+        builder.setNegativeButton(getString(R.string.button_cancel), null);
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     @Override
@@ -268,8 +289,10 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
             @Override
             public void run() {
                 if (board != null) {
-                    oppScore.setText(board.getOppName() + "\n" + board.getState(Board.SCORE_OPPONENT) + "/" + board.getState(Board.MATCH_LENGTH) + (board.isGameOver() ? " Final" : ""));
-                    playerScore.setText(helper.getPlayerName() + "\n" + board.getState(Board.SCORE_PLAYER) + "/" + board.getState(Board.MATCH_LENGTH));
+                    String oppScoreText = board.getOppName() + "\n" + board.getState(Board.SCORE_OPPONENT) + "/" + board.getState(Board.MATCH_LENGTH) + (board.isGameOver() ? " Final" : "");
+                    oppScore.setText(oppScoreText);
+                    String playerScoreText = helper.getPlayerName() + "\n" + board.getState(Board.SCORE_PLAYER) + "/" + board.getState(Board.MATCH_LENGTH);
+                    playerScore.setText(playerScoreText);
                     oppScore.setVisibility(View.VISIBLE);
                     oppScore.invalidate();
                     playerScore.setVisibility(View.VISIBLE);
