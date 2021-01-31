@@ -392,7 +392,7 @@ class BoardView extends AppCompatImageView {
             drawDice(canvas);
         }
         drawCube(canvas);
-        if (drawSplash) {
+        if (drawSplash && board.isGameOver()) {
             canvas.drawBitmap(splash, 0, 0, null);
             drawSplash = false;
         }
