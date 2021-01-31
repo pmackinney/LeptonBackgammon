@@ -1,11 +1,39 @@
 package net.mackinney.lepton;
 
+import androidx.annotation.VisibleForTesting;
+
 import java.util.regex.Pattern;
 
 /**
  * User settings defined and supported by FIBS.
  * This class is not currently used, but will be in future versions.
  */
+
+// TODO run the 'toggle' command and make sure we're not ready for invites unless we want to be
+// TODO all of these settings need to be added to user-configurable preferences.
+   /*
+    > toggle
+    The current settings are:
+    allowpip        YES
+    autoboard       YES
+    autodouble      NO
+    automove        NO
+    bell            NO
+    crawford        YES
+    double          YES
+    greedy          NO
+    moreboards      YES
+    moves           NO
+    notify          YES
+    ratings         YES
+    ready           NO <-- 'toggle ready' flips the status
+    report          NO
+    silent          NO
+    telnet          YES
+    wrap            NO
+    >
+    */
+
 class Settings {
     /* container for the settings available through 'toggle' and 'set'
 

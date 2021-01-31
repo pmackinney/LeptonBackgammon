@@ -1,6 +1,5 @@
 package net.mackinney.lepton;
 
-//import android.util.Log;
 import java.util.Arrays;
 
 /**
@@ -12,12 +11,12 @@ class Board {
         board:You:Nortally:5:0:0:0:-3:0:0:2:0:3:0:3:0:-1:0:-4:4:0:1:0:-2:0:-2:-3:1:0:0:1:0:-1:0:0:0:0:2:0:1:0:1:-1:0:25:0:0:0:0:2:0:0:0
     */
 
-    private String lastLine;
     private static final int NUM_CLIP_FIELDS = 52;
     private static final int FIRST_NUMERIC_CLIP_FIELD = 3;
     private int[] state = new int[NUM_CLIP_FIELDS];
-    private static final int NUM_POINTS = 26;
-    static final int PLAYER = 1;         // the player's name (always 'You', we display the login name on the scoreboard)
+
+    // The FIBS board indices; input to getState()
+    //static final int PLAYER = 1;         // the player's name (always 'You', we display the login name on the scoreboard)
     static final int OPPONENT = 2;       // the opponent's name
     static final int MATCH_LENGTH = 3;   // match length or 9999 for unlimited matches
     static final int SCORE_PLAYER = 4;   // player's points in the match so far
@@ -40,23 +39,22 @@ class Board {
     static final int ON_HOME_PLAYER = 45;// number of pieces already removed from the board by player
     static final int ON_HOME_OPP = 46;   // same for opponent
     static final int ON_BAR_PLAYER = 47; // number of player's pieces on the bar
-    static final int ON_BAR_OPP = 48;    // same for opponent
+    //static final int ON_BAR_OPP = 48;    // same for opponent
     static final int CAN_MOVE = 49;      // a number between 0 and 4. This is the number of pieces you can move. This token is valid if it's your turn and you have already rolled.
-    static final int FORCED_MOVE = 50;   // don't use this token
-    static final int DID_CRAWFORD = 51;  // don't use this token
-    static final int REDOUBLES = 52;     // maximum number of instant redoubles in unlimited matches
+    //static final int FORCED_MOVE = 50;   // don't use this token
+    //static final int DID_CRAWFORD = 51;  // don't use this token
+    //static final int REDOUBLES = 52;     // maximum number of instant redoubles in unlimited matches
 
+    // Various points on the board we refer to
+    private static final int NUM_POINTS = 26; // 24 points + 2 bars (player & opponent)
     private static final int QUADRANT_I_START = 1;
-    private static final int QUADRANT_II_START = QUADRANT_I_START + BoardView.NUM_POINTS_PER_QUADRANT;
-    private static final int NONE = -1;
-    private static final int PLAYER_TURN = 1;
-    private static final int BAR1 = 0;
-    private static final int BAR2 = 25;
-    private String playerName;                   // Board says "You", we display the login name
+    private static final int QUADRANT_II_START = 7;
+    private static final int QUADRANT_III_END = 18;
+
+    private String lastLine;
     private String oppName = "";
     private int[] boardPoints = new int[NUM_POINTS]; // 24 points + home & bar
     private boolean gameOver = true;
-
 
     int getState(int param) {
         return state[param];
@@ -103,7 +101,7 @@ class Board {
         return boardPoints[p] * state[COLOR] > 0;
     }
     
-    public boolean pointIsAvailable(int p) {
+    boolean pointIsAvailable(int p) {
         if (state[HOME] == 0 && p <= 0) {
             return true;
         } else if (state[HOME] != 0 && p >= state[HOME]) {
@@ -116,13 +114,13 @@ class Board {
         return false;
     }
 
-    // player may bear off if not checkers outside home (points 1-6 or 19-24)
-    public boolean playerMayBearOff() {
+    boolean playerMayBearOff() {
+        // player may bear off if all checkers are in home (points 1-6 or 19-24)
         if (state[ON_BAR_PLAYER] > 0) {
             return false;
         } else {
-            int start = (state[DIRECTION] == 1) ? QUADRANT_I_START : QUADRANT_II_START; // 1 or 7
-            int end = start + 3 * BoardView.NUM_POINTS_PER_QUADRANT - 1;                // 18 or 24
+            int start = (state[DIRECTION] == 1) ? QUADRANT_I_START : QUADRANT_II_START;
+            int end = start + QUADRANT_III_END - 1; // we test the 18 points outside home
             for (int ix = start; ix <= end; ix++) {
                 if (isPlayerPoint(ix)) {
                     return false;
@@ -138,7 +136,11 @@ class Board {
     }
 
     boolean playerHasRolled() {
-        return isPlayerTurn() && state[DICE_PLAYER1] != 0;
+        if (isPlayerTurn()) {
+            return state[DICE_PLAYER1] != 0;
+        } else {
+            return false;
+        }
     }
 
     boolean playerMayDouble() {

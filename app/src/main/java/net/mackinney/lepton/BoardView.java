@@ -10,6 +10,7 @@ import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 //import android.util.Log;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -83,7 +84,7 @@ class BoardView extends AppCompatImageView {
     // properties from the backgammon Board PNG
     private static final int RAW_TILE_WIDTH = 169;
     private static final int RAW_TILE_HEIGHT = 142;
-    private static final int RAW_TOP_LEFT_X = 216; // top-left of 1st tile, BG point 13
+    // private static final int RAW_TOP_LEFT_X = 216; // top-left of 1st tile, BG point 13
     private static final int RAW_TOP_LEFT_Y = 50;
     private static final float RAW_BOARD_WIDTH = 2704F; // float for scaling computations
     private static final float RAW_BOARD_HEIGHT = 1680F; // float for scaling computations
@@ -103,19 +104,18 @@ class BoardView extends AppCompatImageView {
     private static final int DICE_ROW = CENTER_ROW;
     private static final int TOP_ROW_LOWER_BOARD = 6;
     private static final int MAX_ROW = 11;
-    static final int NUM_POINTS_PER_QUADRANT = 6;
     private static final int CUBE_COLUMN = 0;
     private static final int CUBE_OFFERED_COLUMN = 3;
     private static final int CUBE_PLAYER_ROW = MAX_ROW - 1;
     private static final int REJECT_COLUMN = CUBE_OFFERED_COLUMN + 1;
-    private static final int BAR_COLUMN = NUM_POINTS_PER_QUADRANT + 1;
-    private static final int HOME_COLUMN = BAR_COLUMN + NUM_POINTS_PER_QUADRANT + 1;
+    private static final int BAR_COLUMN = 7;
+    private static final int HOME_COLUMN = 14;
     private static final int DICE_COLUMN1 = 10;
     private static final int DICE_COLUMN2 = 11;
     private static final int BAR = 47;
 
     // command constants
-    static final int NONE = -1;
+    static final int NONE = -1; // used by offerPending when not set to DOUBLE_OFFER or RESIGN_OFFER
     private static final int ACCEPT = 60; // avoid collions with Board indices
     private static final int REJECT = 61;
     private static final int REQUEST_DOUBLE = 65;
@@ -129,6 +129,7 @@ class BoardView extends AppCompatImageView {
     // flags
     private int offerPending = NONE;
     private int offerLevel;
+    private boolean drawSplash = true;
 
     // objects
     private Board board;
@@ -147,16 +148,17 @@ class BoardView extends AppCompatImageView {
         tileWidth = scale(RAW_TILE_WIDTH);
         tileHeight = scale(RAW_TILE_HEIGHT);
         cubeX = (1.5F * tileWidth - cube[0].getWidth()) / 2F;
-        this.setImageResource(R.drawable.splash);
     }
 
     void initialize(GameHelper helper) {
         this.helper = helper;
         board = helper.getBoard();
+        this.invalidate();
     }
 
     /**
      * Begins a new move
+     * @param board The current Board.
      */
     void newMove(Board board) {
         move = new Move(board);
@@ -164,11 +166,14 @@ class BoardView extends AppCompatImageView {
 
     /**
      * Flag to check if we should display Cube
+     * @param state NONE, RESIGN_OFFER, or DOUBLE_OFFER
      */
     void setPendingOffer(int state) { offerPending = state; }
 
     /**
      * Flag to check if we should display Resignation level
+     * @param state NONE, RESIGN_OFFER, or DOUBLE_OFFER
+     * @param level 1, 2, or 3 if resign offer, power of 2 if double offer.
      */
     void setPendingOffer(int state, int level) { offerPending = state; offerLevel = level; }
 
@@ -243,13 +248,6 @@ class BoardView extends AppCompatImageView {
         }
     }
 
-    /*
-       0 double
-       1-24 bg point
-       25 bar
-       26 dice
-       -1 dead area
-    */
     private int getTarget(int r, int c) { // , , , double, roll, move
         if (c == HOME_COLUMN && r == DICE_ROW) {
             return RESIGN;
@@ -292,28 +290,19 @@ class BoardView extends AppCompatImageView {
                 c--;
             }
             if (r > DICE_ROW) { // bottom of Board
-                c = 2 * NUM_POINTS_PER_QUADRANT - c + 1;
+                c = HOME_COLUMN - 1  - c;
             } else if (r < DICE_ROW) { // top of Board
-                c = 2 * NUM_POINTS_PER_QUADRANT + c;
+                c = HOME_COLUMN - 2 + c;
             }
             // convert for direction
             if (board.getState(Board.DIRECTION) > 0) {
-                c = 4 * NUM_POINTS_PER_QUADRANT + 1 - c;
+                c = BAR2 - c;
             }
             return c;
         }
         return NONE;
     }
 
-    /*
-     * Key
-     * 0 cube column
-     * 1-6 points
-     * 7 bar
-     * 8-13 points
-     * 14 home
-     * -1 otherwise
-     */
     private int getColumn(float x) {
         float unit = getWidth() * RAW_TILE_WIDTH / RAW_BOARD_WIDTH;
         if (0.25F * unit <= x && x <= 1.25F * unit) { // cube column
@@ -374,7 +363,7 @@ class BoardView extends AppCompatImageView {
 
         // draw checkers
         int[] bp = this.board.getBoardPoints();
-        Bitmap checker = null;
+        Bitmap checker;
         for (int p = 0; p < bp.length; p++) { // iterate over points and bar
             if (bp[p] != 0) {
                 if (bp[p] > 0) {
@@ -403,11 +392,16 @@ class BoardView extends AppCompatImageView {
             drawDice(canvas);
         }
         drawCube(canvas);
+        if (drawSplash) {
+            canvas.drawBitmap(splash, 0, 0, null);
+            drawSplash = false;
+        }
         this.setImageBitmap(gb);
         this.invalidate();
         if (this.getVisibility() == View.VISIBLE) {
             helper.listener.setScoreBoardMessage(board);
         }
+
     }
 
     private void drawCube(Canvas c) {
@@ -449,9 +443,9 @@ class BoardView extends AppCompatImageView {
     }
 
     /* drawDice
-        playerTurn and dice not rolled -> draw rollDice
-        playerTurn and dice rolled -> draw playerDice
-        oppturn and dice rolled -> draw oppDice
+        playerTurn and dice not rolled -> draw rollDice bitmaps
+        playerTurn and dice rolled -> draw playerDice bitmaps
+        oppturn and dice rolled -> draw oppDice bitmaps
     */
     private void drawDice(Canvas c) {
         float diceY = topLeftY + DICE_ROW * tileHeight;
@@ -491,19 +485,19 @@ class BoardView extends AppCompatImageView {
     }
 
     private boolean isLeftOfBar(int point) { // points [7 - 18]
-        return NUM_POINTS_PER_QUADRANT < point && point <= 3 * NUM_POINTS_PER_QUADRANT;
+        return BAR_COLUMN <= point && point < BAR_COLUMN + HOME_COLUMN - 2;
     }
 
-    private boolean isTopOfBoard(int point, int direction) { // points [13 .. 24] are on top if direction = 1
+    private boolean isTopOfBoard(int point, int direction) { // points [13 .. 24] are on top if direction = -1
         if (direction == -1) {
-            return point > 2 * NUM_POINTS_PER_QUADRANT;
-        } else { // direction == -1
-            return point <= 2 * NUM_POINTS_PER_QUADRANT;
+            return point >= HOME_COLUMN - 1;
+        } else { // direction == 1
+            return point < HOME_COLUMN - 1;
         }
     }
 
     private void drawBoardPoint(Canvas c, int point, int count, int direction, Bitmap checker) {
-        float x = (1.5F + pointToColumn(point)) * tileWidth;
+        float x = (0.5F + pointToColumn(point)) * tileWidth;
         float y = topLeftY;
         if (isTopOfBoard(point, direction)) { // top of Board
             for (int ix = 0; ix < count; ix++) {
@@ -530,7 +524,7 @@ class BoardView extends AppCompatImageView {
 
     private void drawBarPoint(Canvas c, int point, int count, Bitmap checker) {
         // here x, y are grid units
-        float x = (1.5F + NUM_POINTS_PER_QUADRANT) * tileWidth;
+        float x = (1.5F + (BAR_COLUMN - 1)) * tileWidth;
         float y = topLeftY;
         if (point == BAR1) { // use TopOfBoard stacking but start at top of lower Board
             for (int ix = 0; ix < count; ix++) {
@@ -573,16 +567,13 @@ class BoardView extends AppCompatImageView {
     }
 
     private int pointToColumn(int p) {
-        if (p <= NUM_POINTS_PER_QUADRANT) {
-            p = 2 * NUM_POINTS_PER_QUADRANT - p + 1;
-        } else if (p <= 2 * NUM_POINTS_PER_QUADRANT) {
-            p = 2 * NUM_POINTS_PER_QUADRANT - p;
-        } else if (p <= 3 * NUM_POINTS_PER_QUADRANT) {
-            p = p - 2 * NUM_POINTS_PER_QUADRANT - 1;
-        } else if (p <= 4 * NUM_POINTS_PER_QUADRANT) {
-            p = p - 2 * NUM_POINTS_PER_QUADRANT;
+        int column;
+        p = (p < HOME_COLUMN - 1) ? p : BAR2 - p; // points in the same column always total 25
+        column = HOME_COLUMN - p - 1;             // point 12 is column 1, point 11 is column 2, etc
+        if (BAR_COLUMN > p) {
+            column += 1;                  // if p is to the right of the bar, shift 1 to the right
         }
-        return p;
+        return column;
     }
 
     private Bitmap getPlayerChecker(Board b) {
@@ -612,6 +603,8 @@ class BoardView extends AppCompatImageView {
     /**
      * Handles resignation initiated by opponent (by parsing FIBS output)
      * or by player (received from Resign button dialog)
+     * @param user Player, or opponent.
+     * @param level Normal, Gammon, or Backgammon.
      */
     public void handleResignation(String user, int level) {
         offerLevel = level + 1; // adjust icon index  N = 1, G = 2, B = 3

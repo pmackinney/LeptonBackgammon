@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 // TODO on error (e.g., server says 'You can't ... ') reset move
-// TODO if man on bar, active die must be legal to bear on
 
 /**
  * This class is used to stage a move consisting of 1-4 individual checker movements (SingleMoves).
@@ -21,6 +20,10 @@ class Move {
     private List<Integer> dice;
     private int activeDie;
 
+    // Some handy points we refer to
+    private static final int QUANDRANT_1_END = 6;
+    private static final int QUANDRANT_IV_START = 19;
+    private static final int QUANDRANT_1V_END = 24;
     /**
      * Class constructor
      */
@@ -122,7 +125,7 @@ class Move {
             } else { // normal move
                 result = b.pointIsAvailable(target);
             }
-        } else if (1 <= target && target <= 4 * BoardView.NUM_POINTS_PER_QUADRANT) {  // target is regular point
+        } else if (1 <= target && target <= QUANDRANT_1V_END) {  // target is regular point
             result = b.pointIsAvailable(target);
         } else {                                                                      // target is home but we can't bear off
             result = false;
@@ -186,18 +189,17 @@ class Move {
 
     private boolean isPointWithCheckersFurthestFromHome(int p, Board b) {
         // This method only gets called when we're bearing off
-        // depending on Quadrant, check 6 through p+1 or 19 through p-1
-        if (playerHome == 0) { // Quadrant I
-            for (int ix = BoardView.NUM_POINTS_PER_QUADRANT; ix > p; ix--) {
-                if (b.isPlayerPoint(ix)) {
-                    return false;
-                }
-            }
-        } else { // Quadrant IV
-            for (int ix = 3 * BoardView.NUM_POINTS_PER_QUADRANT + 1; ix < p; ix++) {
-                if (b.getBoardPoints()[ix] * b.getState(Board.DIRECTION) > 0) {
-                    return false;
-                }
+        int start, end;
+        if (playerHome == 0) { // Quadrant I, test points p+1 to 6
+            start = p + 1;
+            end = QUANDRANT_1_END;
+        } else {               // Quadrant IV, test points 19 to p-1
+            start = QUANDRANT_IV_START;
+            end = p - 1;
+        }
+        for (int ix = start; ix <= end; ix++) {
+            if (b.isPlayerPoint(ix)) {
+                return false;
             }
         }
         return true;

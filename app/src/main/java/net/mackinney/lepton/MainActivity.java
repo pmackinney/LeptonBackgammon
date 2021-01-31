@@ -1,24 +1,16 @@
 package net.mackinney.lepton;
 
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;  // https://stackoverflow.com/questions/31297246/activity-appcompatactivity-fragmentactivity-and-actionbaractivity-when-to-us
-// import androidx.fragment.app.FragmentActivity; // AppCompatActivity extends FragmentActivity
-
-
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 
 /**
  * The main activity for Lepton Backgammon, listener for GameHelper, manages all buttons.
@@ -36,11 +28,9 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-//        Log.i(TAG, "oncreate called.");
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main); // must come BEFORE findViewById commands
-        preferences = new Preferences(this.getApplicationContext());
         commandText = findViewById(R.id.commandText);
         consoleTextView = findViewById(R.id.console);
         consoleTextView.setMovementMethod(new ScrollingMovementMethod());
@@ -52,34 +42,26 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         playerScore = findViewById(R.id.playerScore);
         helper = new GameHelper(this, this.getApplicationContext());
         boardView.initialize(helper);
-        try {
-            Process process = Runtime.getRuntime().exec("logcat -d");
-            BufferedReader bufferedReader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()));
+        initPreferences();
+    }
 
-            StringBuilder log=new StringBuilder();
-            String line;
-            while ((line = bufferedReader.readLine()) != null) {
-                log.append(line);
-            }
-
-        } catch (IOException e) {
-            Log.e(TAG, e.getMessage());
-        }
+    private void initPreferences() {
+        preferences = new Preferences(this.getApplicationContext());
     }
 
     /**
      * Send a command to GameHelper for processing.
+     * @param view The button that was tapped.
      */
     public void sendCommand(View view) {
-        String cmd = commandText.getText().toString();
+        helper.addCommand(commandText.getText().toString());
         commandText.setText("");
-        helper.addCommand(cmd);
     }
 
     /**
-     * Toggle visibility of Board View and Console View
-     *  The button name is whichever View is hidden.
+     * Toggle visibility of Board and Console.
+     * The button name is whichever View is hidden.
+     * @param view The button that was tapped.
      */
     public void showHideBoardView(View view) {
         Button btn = (Button) view;
@@ -106,6 +88,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
      * The dialog shows the name of a GammonBot that has recently been reported ready to play,
      * along with a match length value. The match length defaults to the previous value, or 5
      * by default. The player may edit either field.
+     * @param view The button that was tapped.
      */
     public void invite(View view) {
         // create an alert builder
@@ -115,23 +98,23 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         final View inviteLayout = getLayoutInflater().inflate(R.layout.invite, null); // use of null is not recommended, but I don't know what else to put here.
         ((EditText) inviteLayout.findViewById(R.id.opponent)).setText(helper.getReady());
         final int invitationLength = preferences.getInvitationLength();
-        ((EditText) inviteLayout.findViewById(R.id.match_length)).setText(Integer.toString(invitationLength)); // "" + int is an abstraction violation.
+        ((EditText) inviteLayout.findViewById(R.id.match_length)).setText(Integer.toString(invitationLength));
         builder.setView(inviteLayout);
         // add a button
-        builder.setPositiveButton("Invite", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(R.string.button_invite, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 // send data from the AlertDialog to the Activity
-                String opp = ((EditText) inviteLayout.findViewById(R.id.opponent)).getText().toString();
-                String gl = ((EditText) inviteLayout.findViewById(R.id.match_length)).getText().toString();
-                if (Integer.parseInt(gl) != invitationLength) {
-                    preferences.setInvitationLength(Integer.parseInt(gl));
+                String opponent = ((EditText) inviteLayout.findViewById(R.id.opponent)).getText().toString();
+                String gameLength = ((EditText) inviteLayout.findViewById(R.id.match_length)).getText().toString();
+                if (!gameLength.equals(Integer.toString(invitationLength))) {
+                    preferences.setInvitationLength(Integer.parseInt(gameLength));
                     preferences.commit();
                 }
-                helper.addCommand("invite " + opp + " " + gl);
+                helper.inviteOpponent(opponent, gameLength);
             }
         });
-        builder.setNegativeButton("Cancel", null);
+        builder.setNegativeButton(getString(R.string.button_cancel), null);
         // create and show the alert dialog
         AlertDialog dialog = builder.create();
         dialog.show();
@@ -139,38 +122,39 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
 
     /**
      * Offer to resign, either Normal, Gammon, or Backgammon.
+     * The use of a custom AlertDialog with a list of choices modeled on examples found here:
+     * https://medium.com/@suragch/adding-a-list-to-an-android-alertdialog-e13c1df6cf00
+     * @param view The button that was tapped.
      */
-    // https://medium.com/@suragch/adding-a-list-to-an-android-alertdialog-e13c1df6cf00
     public void resign(View view) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Resign the game?");
         String[] choices = {"Normal", "Gammon", "Backgammon"};
-        final int[] checkedItem = {0}; // Normal TODO: writeup why this had to be final, use of array
+        final int[] checkedItem = {0}; // Normal is the default
         builder.setSingleChoiceItems(choices, checkedItem[0], new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 checkedItem[0] = which;
             }
         });
-        // add OK and Cancel buttons
-        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+        // add Resign and Cancel buttons
+        builder.setPositiveButton(R.string.button_resign, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 handleResignation("Player", checkedItem[0]);
             }
         });
-        builder.setNegativeButton("Cancel", null);
+        builder.setNegativeButton(getString(R.string.button_cancel), null);
         // create and show the alert dialog
-        AlertDialog dialog = builder.create();
-        dialog.show();
+        builder.create().show();
     }
 
     /**
      * Toggle the setting of the FIBS autoroll feature and roll the dice.
+     * @param view The button that was tapped.
      */
     public void toggleAutoroll(View view) {
-        helper.addCommand("toggle double");
-        helper.roll();
+        helper.toggleDouble();
     }
 
     /**
@@ -178,6 +162,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
      * If not logged in, the player is prompted to log in with the previous username and password
      * values, if available. If logged in, the player is logged out and the telnet session is
      * terminated.
+     * @param view The button that was tapped.
      */
     public void loginLogout(View view) {
         Button btn = (Button) view;
@@ -210,7 +195,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
             AlertDialog dialog = builder.create();
             dialog.show();
         } else { // btn.getText() == Logout
-            helper.addCommand("bye");
+            helper.logout();
             setScoreBoardMessage(GONE);
             boardView.setBackgroundSplash();
         }
@@ -221,6 +206,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
      * The player may edit the name, and if there is a challenge matching that name,
      * it will be accepted. The match length reflects the original invitation and
      * is not guaranteed to be accurate.
+     * @param view The button that was tapped.
      */
     public void join(View view) {
         Button btn = (Button) view;
@@ -231,14 +217,14 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         ((EditText) joinLayout.findViewById(R.id.opponent)).setText(challenger[0]);
         ((TextView) joinLayout.findViewById(R.id.match_length)).setText(challenger[1]);
         builder.setView(joinLayout);
-        builder.setPositiveButton("Join", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(R.string.button_join, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 EditText opponent = joinLayout.findViewById(R.id.opponent);
                 String name = opponent.getText().toString();
                 TextView matchLength = joinLayout.findViewById(R.id.match_length);
                 String length = matchLength.getText().toString();
-                helper.addCommand("join " + opponent.getText().toString());
+                helper.joinMatch(opponent.getText().toString());
             }
         });
         builder.setNegativeButton(getString(R.string.button_cancel), null);
@@ -358,6 +344,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
 
     @Override
     public void quit() {
+        // ref: https://stackoverflow.com/questions/6330200/how-to-quit-android-application-programmatically/27765687#27765687
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             this.finishAndRemoveTask();
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {

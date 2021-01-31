@@ -26,4 +26,6 @@
     <string name="join_title">Accept invitaiton</string>
     <string name="button_cancel">Cancel</string>
     <string name="button_connect">Connect</string>
+    <string name="fibs_cmd_double">toggle double</string>
+    <string name="fibs_cmd_roll">roll</string>
 </resources>
