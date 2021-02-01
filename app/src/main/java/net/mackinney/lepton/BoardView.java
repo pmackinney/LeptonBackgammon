@@ -34,6 +34,7 @@ class BoardView extends AppCompatImageView {
     private final Bitmap brownStack = BitmapFactory.decodeResource(getResources(), R.drawable.brownstack);
     private final Bitmap whiteStack = BitmapFactory.decodeResource(getResources(), R.drawable.whitestack);
     private final Bitmap[] whitedie = new Bitmap[]{
+            BitmapFactory.decodeResource(getResources(), R.drawable.white_prompt),
             BitmapFactory.decodeResource(getResources(), R.drawable.whitedie1),
             BitmapFactory.decodeResource(getResources(), R.drawable.whitedie2),
             BitmapFactory.decodeResource(getResources(), R.drawable.whitedie3),
@@ -46,8 +47,8 @@ class BoardView extends AppCompatImageView {
             BitmapFactory.decodeResource(getResources(), R.drawable.whitedie4b),
             BitmapFactory.decodeResource(getResources(), R.drawable.whitedie5b),
             BitmapFactory.decodeResource(getResources(), R.drawable.whitedie6b)};
-    private final Bitmap whitePrompt = BitmapFactory.decodeResource(getResources(), R.drawable.white_prompt);
     private final Bitmap[] browndie = new Bitmap[]{
+            BitmapFactory.decodeResource(getResources(), R.drawable.brown_prompt),
             BitmapFactory.decodeResource(getResources(), R.drawable.browndie1),
             BitmapFactory.decodeResource(getResources(), R.drawable.browndie2),
             BitmapFactory.decodeResource(getResources(), R.drawable.browndie3),
@@ -60,7 +61,6 @@ class BoardView extends AppCompatImageView {
             BitmapFactory.decodeResource(getResources(), R.drawable.browndie4b),
             BitmapFactory.decodeResource(getResources(), R.drawable.browndie5b),
             BitmapFactory.decodeResource(getResources(), R.drawable.browndie6b)};
-    private final Bitmap brownPrompt = BitmapFactory.decodeResource(getResources(), R.drawable.brown_prompt);
     private final Bitmap[] cube = new Bitmap[]{
             BitmapFactory.decodeResource(getResources(), R.drawable.cube1),
             BitmapFactory.decodeResource(getResources(), R.drawable.cube2),
@@ -450,11 +450,11 @@ class BoardView extends AppCompatImageView {
         int d2 = -1;             //       "
         if (board.isPlayerTurn()) {
             diceX += 7F * tileWidth;    // adjust to player position
-            if (board.getState(Board.DICE_PLAYER1) == 0) {
-                Bitmap d = (board.getState(Board.COLOR) == BROWN) ? brownPrompt : whitePrompt;
-                c.drawBitmap(d, diceX, diceY, null);
-                c.drawBitmap(d, diceX + tileWidth, diceY, null);
-            } else { // player's roll is non-zero
+//            if (board.getState(Board.DICE_PLAYER1) == 0) {
+//                Bitmap d = (board.getState(Board.COLOR) == BROWN) ? brownPrompt : whitePrompt;
+//                c.drawBitmap(d, diceX, diceY, null);
+//                c.drawBitmap(d, diceX + tileWidth, diceY, null);
+//            } else { // player's roll is non-zero
                 if (move == null) {
                     newMove(board);
                 }
@@ -467,23 +467,18 @@ class BoardView extends AppCompatImageView {
                 if (move.isReadyToSend(board)) {
                     c.drawBitmap(accept, diceX - tileWidth, diceY, null); // -1
                 } else  {
-                    d1 = (d1 == move.getActiveDie()) ? d1 + 5 : d1 - 1; // -1 shift from die value to array index,
-                    d2 = (d2 == move.getActiveDie()) ? d2 + 5 : d2 - 1; //  and +6 to indicate active die
+                    d1 += (d1 == move.getActiveDie()) ? 6 : 0; //   +6 for active die
+                    d2 += (d2 == move.getActiveDie()) ? 6 : 0;
                 }
-            }
-        } else if (board.getState(Board.DICE_OPP1) != 0) {                // opp turn
+//            }
+        } else {
             bitmaps = (board.getState(Board.COLOR) == BROWN) ? whitedie : browndie;
             // prevent ArrayIndexOutOfBoundsException, should never happen but does sometimes
-            d1 = board.getState(Board.DICE_OPP1) - 1; // -1 shift from die value to array index
-            d2 = board.getState(Board.DICE_OPP2) - 1; //      "
-
+            d1 = board.getState(Board.DICE_OPP1);
+            d2 = board.getState(Board.DICE_OPP2);
         }
-        // This safety check because I found an ArrayIndexOutOfBoundsException in logcat after a
-        // crash. Ideally, if it's someone's turn the dice aren't zero, but that's FIBS, not me.
-        if (d1 >= 0 && d2 >= 0) {
-            c.drawBitmap(bitmaps[d1], diceX, diceY, null);
-            c.drawBitmap(bitmaps[d2], diceX + tileWidth, diceY, null);
-        }
+        c.drawBitmap(bitmaps[d1], diceX, diceY, null);
+        c.drawBitmap(bitmaps[d2], diceX + tileWidth, diceY, null);
     }
 
     private boolean isLeftOfBar(int point) { // points [7 - 18]
