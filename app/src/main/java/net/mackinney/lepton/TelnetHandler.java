@@ -122,7 +122,7 @@ class TelnetHandler implements Runnable {
             //
             // Login failure is indicated by another login: prompt with no following EOL
             if (readUntil("login: ", serverOutput)) {
-                String loginCommand = "login" + " " + Preferences.getClientName() + " " + Preferences.getClipVersion() + " " + user + " " + password;
+                String loginCommand = "login" + " " + context.getString(R.string.client_name) + " " + Preferences.getClipVersion() + " " + user + " " + password;
                 write(out, loginCommand);
                 if (readUntil(1 + " " + user + " ", serverOutput)) {
                     for (String setting : Settings.getSettings()) {

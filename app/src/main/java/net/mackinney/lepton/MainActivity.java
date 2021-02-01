@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         consoleTextView = findViewById(R.id.console);
         consoleTextView.setMovementMethod(new ScrollingMovementMethod());
         consoleTextView.setTextColor(Color.BLACK);
-        String consoleMessage = getString(R.string.full_name) + "\nVersion " + getString(R.string.version) + "\n" + getString(R.string.copyright) + "\n";
+        String consoleMessage = getString(R.string.client_name) + "\n" + getString(R.string.copyright) + "\n";
         consoleTextView.setText(consoleMessage);
         boardView = findViewById(R.id.boardView);
         oppScore = findViewById(R.id.oppScore);

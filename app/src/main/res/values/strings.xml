@@ -2,8 +2,7 @@
     <string name="app_name">Lepton</string>
     <string name="edit_message">command</string>
     <string name="button_send">Send</string>
-    <string name="full_name">Lepton Backgammon</string>
-    <string name="version">b5</string>
+    <string name="client_name">lepton_backgammon_b6</string>
     <string name="copyright">Copyright 2020 Paul Mackinney\nLepton Image Tatyana Ryevzina https://www.instagram.com/teabugart</string>
     <string name="backgammon_board"> </string>
     <string name="button_show">Board</string>

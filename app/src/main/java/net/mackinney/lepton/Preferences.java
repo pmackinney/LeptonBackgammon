@@ -24,7 +24,6 @@ class Preferences {
     private static final String INVITATION_LENGTH_KEY = "invitationLength";
     private static final String DEFAULT_SERVER = "fibs.com";
     private static final int DEFAULT_PORT = 4321;
-    private static final String CLIENT_NAME = "Lepton_b5";
     private static final String CLIP_VERSION = "1008";
     private static final int DEFAULT_INVITATION_LENGTH = 5;
     private static String SERVER;
@@ -44,10 +43,6 @@ class Preferences {
         invitationLength = preferences.getInt(INVITATION_LENGTH_KEY, DEFAULT_INVITATION_LENGTH);
     }
 
-    static String getClientName() {
-        return CLIENT_NAME;
-    }
-    
     static String getClipVersion() {
         return CLIP_VERSION;
     }
