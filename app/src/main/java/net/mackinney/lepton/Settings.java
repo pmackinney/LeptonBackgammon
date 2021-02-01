@@ -1,9 +1,5 @@
 package net.mackinney.lepton;
 
-import androidx.annotation.VisibleForTesting;
-
-import java.util.regex.Pattern;
-
 /**
  * User settings defined and supported by FIBS.
  * This class is not currently used, but will be in future versions.
@@ -35,6 +31,7 @@ import java.util.regex.Pattern;
     */
 
 class Settings {
+
     /* container for the settings available through 'toggle' and 'set'
 
     >toggle
@@ -105,18 +102,20 @@ class Settings {
     <value>.
     There are currently 6 variables you can set to a value:
     */
-
     private String boardstyle = "3"; // required by parser
     // private String linelength: 0 // we'll accept the default
     // private String pagelength: 0 // we'll accept the default
     // private String redoubles:  none // we'll accept the default
     // private String sortwho = "login"; // we'll accept the default
-    private String timezone = "America/Los_Angeles"; // TODO set to system timezone
 
     // can't use modern java call without upping the minimum android version :-(  java.time.ZonedDateTime.now().getZone()
-    private static String[] setCommands = new String[]{
+    private static final String timezone = java.util.Calendar.getInstance().getTimeZone().getID();
+        // "America/Los_Angeles"; // TODO set to system timezone
+
+    private static final String[] settings = new String[]{
             "set boardstyle 3",
-            "set timezone " + java.util.Calendar.getInstance().getTimeZone().getID()
+            "set timezone " + timezone
     };
 
+    static String[] getSettings() { return settings; }
 }

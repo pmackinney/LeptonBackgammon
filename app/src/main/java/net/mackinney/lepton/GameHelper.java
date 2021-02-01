@@ -509,9 +509,7 @@ class GameHelper implements TelnetHandlerListener {
     }
 
     @Override
-    public void updateLoginButton(boolean b) {
-        listener.updateLoginButton(b);
-    }
+    public void updateLoginButton(boolean b) { listener.updateLoginButton(b); }
 
     @Override
     public void quit() {
@@ -561,4 +559,6 @@ class GameHelper implements TelnetHandlerListener {
     }
 
     void logout() { addCommand(CMD_LOGOUT); }
+
+    void login(String name, String pw) { addCommand("connect " + name + " " + pw); }
 }

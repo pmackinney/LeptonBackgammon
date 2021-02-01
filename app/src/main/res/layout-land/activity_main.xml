@@ -174,7 +174,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/splash" />
+        app:srcCompat="@drawable/backgammon" />
 
     <!-- This example shows 2 Views centered verticall at left/right margin -->
     <!--    <TextView
@@ -235,4 +235,12 @@
             app:layout_constraintBottom_toBottomOf="@+id/boardView"
             app:layout_constraintStart_toStartOf="@+id/boardView" />
 
+    <ImageView
+        android:id="@+id/splash"
+        android:src="@drawable/splash"
+        android:background="@null"
+        android:scaleType="fitCenter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="Splash Screen" />
 </androidx.constraintlayout.widget.ConstraintLayout>

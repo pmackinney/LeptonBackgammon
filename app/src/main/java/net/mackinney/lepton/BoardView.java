@@ -27,7 +27,6 @@ class BoardView extends AppCompatImageView {
     private GameHelper helper;
 
     // TODO CAN WE DEFINE ALL BITMAPS IN XML?
-    private final Bitmap splash = BitmapFactory.decodeResource(getResources(), R.drawable.splash);
     private final Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.backgammon);
     private final Bitmap messageboard = BitmapFactory.decodeResource(getResources(), R.drawable.messageboard);
     private final Bitmap brownChecker = BitmapFactory.decodeResource(getResources(), R.drawable.brownchecker);
@@ -85,7 +84,7 @@ class BoardView extends AppCompatImageView {
     private static final int RAW_TILE_WIDTH = 169;
     private static final int RAW_TILE_HEIGHT = 142;
     // private static final int RAW_TOP_LEFT_X = 216; // top-left of 1st tile, BG point 13
-    private static final int RAW_TOP_LEFT_Y = 50;
+    private static final int RAW_TOP_LEFT_Y = 55; // TESTING PROPER VALUE
     private static final float RAW_BOARD_WIDTH = 2704F; // float for scaling computations
     private static final float RAW_BOARD_HEIGHT = 1680F; // float for scaling computations
     private static final int BROWN = -1;
@@ -392,10 +391,6 @@ class BoardView extends AppCompatImageView {
             drawDice(canvas);
         }
         drawCube(canvas);
-        if (drawSplash && board.isGameOver()) {
-            canvas.drawBitmap(splash, 0, 0, null);
-            drawSplash = false;
-        }
         this.setImageBitmap(gb);
         this.invalidate();
         if (this.getVisibility() == View.VISIBLE) {
@@ -450,7 +445,9 @@ class BoardView extends AppCompatImageView {
     private void drawDice(Canvas c) {
         float diceY = topLeftY + DICE_ROW * tileHeight;
         float diceX = 3.5F * tileWidth; // opponent position
-        Bitmap[] bitmaps;
+        Bitmap[] bitmaps = null; // to silence lint
+        int d1 = -1;             //       "
+        int d2 = -1;             //       "
         if (board.isPlayerTurn()) {
             diceX += 7F * tileWidth;    // adjust to player position
             if (board.getState(Board.DICE_PLAYER1) == 0) {
@@ -462,30 +459,36 @@ class BoardView extends AppCompatImageView {
                     newMove(board);
                 }
                 bitmaps = (board.getState(Board.COLOR) == BROWN) ? browndie : whitedie;
-                int d1 = board.getState(Board.DICE_PLAYER1);
-                int d2 = board.getState(Board.DICE_PLAYER2);
+                d1 = board.getState(Board.DICE_PLAYER1);
+                d2 = board.getState(Board.DICE_PLAYER2);
                 if (move.isStarted(board)) {
-                    c.drawBitmap(reject, diceX + 2 * tileWidth, diceY, null); // -- TODO drawOppDice() method, then unify
+                    c.drawBitmap(reject, diceX + 2 * tileWidth, diceY, null); // -- TODO reduce duplicated logic for player, opp
                 }
                 if (move.isReadyToSend(board)) {
                     c.drawBitmap(accept, diceX - tileWidth, diceY, null); // -1
-                } else if (d1 == move.getActiveDie()) {
-                    d1 += 6; // add 6 to index to select large bitmap
-                } else if (d2 == move.getActiveDie()) {
-                    d2 += 6;
+                } else  {
+                    d1 = (d1 == move.getActiveDie()) ? d1 + 5 : d1 - 1; // -1 shift from die value to array index,
+                    d2 = (d2 == move.getActiveDie()) ? d2 + 5 : d2 - 1; //  and +6 to indicate active die
                 }
-                c.drawBitmap(bitmaps[d1 - 1], diceX, diceY, null); // -1
-                c.drawBitmap(bitmaps[d2 - 1], diceX + tileWidth, diceY, null); // -- TODO drawOppDice() method, then unify
             }
         } else if (board.getState(Board.DICE_OPP1) != 0) {                // opp turn
             bitmaps = (board.getState(Board.COLOR) == BROWN) ? whitedie : browndie;
-            c.drawBitmap(bitmaps[board.getState(Board.DICE_OPP1) - 1], diceX, diceY, null);
-            c.drawBitmap(bitmaps[board.getState(Board.DICE_OPP2) - 1], diceX + tileWidth, diceY, null);
+            // prevent ArrayIndexOutOfBoundsException, should never happen but does sometimes
+            d1 = board.getState(Board.DICE_OPP1) - 1; // -1 shift from die value to array index
+            d2 = board.getState(Board.DICE_OPP2) - 1; //      "
+
+        }
+        // This safety check because I found an ArrayIndexOutOfBoundsException in logcat after a
+        // crash. Ideally, if it's someone's turn the dice aren't zero, but that's FIBS, not me.
+        if (d1 >= 0 && d2 >= 0) {
+            c.drawBitmap(bitmaps[d1], diceX, diceY, null);
+            c.drawBitmap(bitmaps[d2], diceX + tileWidth, diceY, null);
         }
     }
 
     private boolean isLeftOfBar(int point) { // points [7 - 18]
         return BAR_COLUMN <= point && point < BAR_COLUMN + HOME_COLUMN - 2;
+
     }
 
     private boolean isTopOfBoard(int point, int direction) { // points [13 .. 24] are on top if direction = -1
@@ -623,9 +626,4 @@ class BoardView extends AppCompatImageView {
         updateGameBoard(board);
         offerLevel = 0;
     }
-
-    /**
-     * Display the splash screen
-     */
-    public void setBackgroundSplash() { this.setImageBitmap(splash); }
 }

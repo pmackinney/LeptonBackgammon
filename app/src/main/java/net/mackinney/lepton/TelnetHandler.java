@@ -47,7 +47,7 @@ class TelnetHandler implements Runnable {
         try {
             StringBuilder serverOutput = new StringBuilder();
             long startTime = System.currentTimeMillis();
-            String command = "";
+            String command;
             String partial = "";
             do {
                 // Main loop A: check for commands
@@ -125,6 +125,9 @@ class TelnetHandler implements Runnable {
                 String loginCommand = "login" + " " + Preferences.getClientName() + " " + Preferences.getClipVersion() + " " + user + " " + password;
                 write(out, loginCommand);
                 if (readUntil(1 + " " + user + " ", serverOutput)) {
+                    for (String setting : Settings.getSettings()) {
+                        write(out, setting + "\n");
+                    }
                     helper.updateLoginButton(true);
                 } else {
                     helper.updateLoginButton(false);

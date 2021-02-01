@@ -10,6 +10,7 @@ import android.text.method.ScrollingMovementMethod;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 /**
@@ -24,7 +25,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
     private TextView oppScore;
     private TextView playerScore;
     private Preferences preferences;
-    private static final Board GONE = null;
+    private ImageView splash;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +44,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         helper = new GameHelper(this, this.getApplicationContext());
         boardView.initialize(helper);
         initPreferences();
+        splash = findViewById(R.id.splash);
     }
 
     private void initPreferences() {
@@ -66,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
     public void showHideBoardView(View view) {
         Button btn = (Button) view;
         if (boardView.getVisibility() == View.VISIBLE) {
+            splash.setVisibility(View.GONE);
             boardView.setVisibility(View.INVISIBLE);
             consoleTextView.setVisibility(View.VISIBLE);
             oppScore.setVisibility(View.INVISIBLE);
@@ -160,7 +163,8 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
     /**
      * Login or Logout
      * If not logged in, the player is prompted to log in with the previous username and password
-     * values, if available. If logged in, the player is logged out and the telnet session is
+     * values, if available. Side effects: the splash screen is hidden and the Console is displayed.
+     * If logged in, the player is logged out and the telnet session is
      * terminated.
      * @param view The button that was tapped.
      */
@@ -171,7 +175,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("Login Info");
             // Set the custom layout and customize it. Final because the procedure is to be called
-            // later; the customlayout is external to the procedure and Java requires free variables
+            // later; the custom layout is external to the procedure and Java requires free variables
             // in lambdas to be constant.
             final View loginLayout = getLayoutInflater().inflate(R.layout.login, null);
             ((EditText) loginLayout.findViewById(R.id.userName)).setText(preferences.getUser());
@@ -187,7 +191,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
                     EditText password = loginLayout.findViewById(R.id.password);
                     String pw = password.getText().toString();
                     updateLoginData(userName.getText().toString(), password.getText().toString());
-                    helper.addCommand("connect " + name + " " + pw);
+                    helper.login(name, pw);
                 }
             });
             builder.setNegativeButton(getString(R.string.button_cancel), null);
@@ -196,8 +200,6 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
             dialog.show();
         } else { // btn.getText() == Logout
             helper.logout();
-            setScoreBoardMessage(GONE);
-            boardView.setBackgroundSplash();
         }
     }
 
@@ -209,7 +211,6 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
      * @param view The button that was tapped.
      */
     public void join(View view) {
-        Button btn = (Button) view;
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.button_join));
         final View joinLayout = getLayoutInflater().inflate(R.layout.join, null);
@@ -241,6 +242,9 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
                 if (isLoggedIn) {
                     ((Button) findViewById(R.id.loginLogout)).setText(R.string.button_logout);
                     visibility = View.VISIBLE;
+                    Button showHide = ((Button) findViewById(R.id.showHide));
+                    showHide.setText(R.string.button_hide);
+                    showHideBoardView(showHide);
                 } else {
                     ((Button) findViewById(R.id.loginLogout)).setText(R.string.button_login);
                     visibility = View.GONE;
