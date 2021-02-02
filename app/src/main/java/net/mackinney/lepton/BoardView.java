@@ -201,7 +201,7 @@ class BoardView extends AppCompatImageView {
 
     private void downTouch(float x, float y) {
         // only responds while playing
-        if (board.isGameOver()) {
+        if (board.getState(Board.MATCH_LENGTH) > 0) {
             return;
         }
         int c = getColumn(x);
@@ -450,11 +450,6 @@ class BoardView extends AppCompatImageView {
         int d2 = -1;             //       "
         if (board.isPlayerTurn()) {
             diceX += 7F * tileWidth;    // adjust to player position
-//            if (board.getState(Board.DICE_PLAYER1) == 0) {
-//                Bitmap d = (board.getState(Board.COLOR) == BROWN) ? brownPrompt : whitePrompt;
-//                c.drawBitmap(d, diceX, diceY, null);
-//                c.drawBitmap(d, diceX + tileWidth, diceY, null);
-//            } else { // player's roll is non-zero
                 if (move == null) {
                     newMove(board);
                 }
@@ -467,19 +462,25 @@ class BoardView extends AppCompatImageView {
                 if (move.isReadyToSend(board)) {
                     c.drawBitmap(accept, diceX - tileWidth, diceY, null); // -1
                 } else  {
-                    d1 += (d1 == move.getActiveDie()) ? 6 : 0; //   +6 for active die
-                    d2 += (d2 == move.getActiveDie()) ? 6 : 0;
+                    if (d1 > 0) { // if either die is zero, both are -- we don't have to test both
+                        if (d1 == move.getActiveDie()) {
+                            d1 = getLargeDieIndex(d1);
+                        }
+                        if (d2 == move.getActiveDie()) {
+                            d2 = getLargeDieIndex(d2);
+                        }
+                    }
                 }
-//            }
         } else {
             bitmaps = (board.getState(Board.COLOR) == BROWN) ? whitedie : browndie;
-            // prevent ArrayIndexOutOfBoundsException, should never happen but does sometimes
             d1 = board.getState(Board.DICE_OPP1);
             d2 = board.getState(Board.DICE_OPP2);
         }
         c.drawBitmap(bitmaps[d1], diceX, diceY, null);
         c.drawBitmap(bitmaps[d2], diceX + tileWidth, diceY, null);
     }
+
+    private int getLargeDieIndex(int die) { return die + 6; }
 
     private boolean isLeftOfBar(int point) { // points [7 - 18]
         return BAR_COLUMN <= point && point < BAR_COLUMN + HOME_COLUMN - 2;

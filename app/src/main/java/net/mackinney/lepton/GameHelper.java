@@ -314,12 +314,14 @@ class GameHelper implements TelnetHandlerListener {
 
         match.usePattern(NEW_MATCH_1);
         if (match.find()) {
+            addCommand("board");
             board.setGameOver(false);
             return;
         }
 
         match.usePattern(NEW_MATCH_2);
         if (match.find()) {
+            addCommand("board");
             board.setGameOver(false);
             return;
         }
@@ -442,11 +444,9 @@ class GameHelper implements TelnetHandlerListener {
 
     @Override
     public void appendConsole(String line) {
-        // LogCat gets everything
-        Log.i(TAG, line);
-            if (!line.isEmpty() && !consoleSkip.matcher(line).find()) {
-                listener.appendConsole(line + "\n");
-            }
+        if (!line.isEmpty() && !consoleSkip.matcher(line).find()) {
+            listener.appendConsole(line + "\n");
+        }
     }
 
     /**

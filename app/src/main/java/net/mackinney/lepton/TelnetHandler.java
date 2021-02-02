@@ -81,6 +81,7 @@ class TelnetHandler implements Runnable {
                     if (serverOutput.length() > 0) {
                         String[] lines = serverOutput.toString().split("[" + EOL + "]+"); // eliminates most empty lines
                         for (String line : lines) {
+                            //Log.i(TAG, line);
                             if (line.length() > 0) {
                                 helper.parse(line);
                             }
