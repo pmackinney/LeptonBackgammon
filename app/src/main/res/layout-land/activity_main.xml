@@ -46,7 +46,6 @@
     <TextView
         android:id="@+id/console"
         style="@style/ConsoleStyle"
-        android:textIsSelectable="true"
         android:layout_width="wrap_content"
         android:ems="80"
         android:layout_height="0dp"

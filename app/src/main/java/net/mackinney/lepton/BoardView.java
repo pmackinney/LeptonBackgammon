@@ -200,14 +200,14 @@ class BoardView extends AppCompatImageView {
     }
 
     private void downTouch(float x, float y) {
-        // only responds while playing
-        if (board.getState(Board.MATCH_LENGTH) > 0) {
+        board = helper.getBoard();
+        // skip if not playing
+        if (board.isGameOver()) {
             return;
         }
         int c = getColumn(x);
         int r = getRow(y);
         int target = getTarget(r, c); // get the backgammon point, 1-24
-        board = helper.getBoard();
         if (target == CENTER_TAP) {
             if (board.getState(Board.TURN) == 0) {
                 helper.addCommand("join");
