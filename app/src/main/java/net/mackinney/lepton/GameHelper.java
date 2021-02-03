@@ -218,10 +218,15 @@ class GameHelper implements TelnetHandlerListener {
     // addCommand & readCommand may be called from different threads, must be synchronized
     @Override
     public synchronized void addCommand(String cmd) {
+        if (cmd.equals("disable test")) {
+            BoardView.DISABLE_TEST = !BoardView.DISABLE_TEST;
+            appendConsole("DISABLE_TEST now " + BoardView.DISABLE_TEST);
+        }
         if (cmd.matches(JOIN)) {
             listener.setPendingOffer(BoardView.NONE);
             CHALLENGERS.clear();
-        } else if (cmd.matches(WHO)) {
+//        } else if (cmd.matches(WHO)) {
+        } else if (cmd.startsWith("who")) {
             FIBS_IGNORE.remove(CLIP_WHO_INFO);
             consoleSkip = updateConsoleSkip(FIBS_IGNORE);
         }

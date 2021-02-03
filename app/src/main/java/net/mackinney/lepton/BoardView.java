@@ -138,6 +138,7 @@ class BoardView extends AppCompatImageView {
     private float myLeft = -1;
     private float myTop = -1;
 
+    static boolean DISABLE_TEST = true;
     /**
      * The Backgammon board
      */
@@ -200,14 +201,16 @@ class BoardView extends AppCompatImageView {
     }
 
     private void downTouch(float x, float y) {
-        board = helper.getBoard();
-        // skip if not playing
-        if (board.isGameOver()) {
-            return;
-        }
         int c = getColumn(x);
         int r = getRow(y);
         int target = getTarget(r, c); // get the backgammon point, 1-24
+        Log.i(TAG, "tap target: " + target);
+        board = helper.getBoard();
+        Log.i(TAG, "board.isGameOver() = " + board.isGameOver() + ", DISABLE_TEST = " + DISABLE_TEST);
+        // skip if not playing
+        if (board.isGameOver() && !DISABLE_TEST) {
+            return;
+        }
         if (target == CENTER_TAP) {
             if (board.getState(Board.TURN) == 0) {
                 helper.addCommand("join");
