@@ -22,15 +22,17 @@ class TelnetHandler implements Runnable {
     private String myUser = "";
     private TelnetClient client; // org.apache.commons.net.telnet.TelnetClient
     private BufferedReader in;
-    private static final int SERVER_CHAR_SIZE = 512; // optimum size?
     private OutputStreamWriter out;
-    private static final int MAX_WAIT = 30000; // milliseconds, e.g., 30 seconds
     private static String consoleMessage;
     private static final String EOL = "\r\n"; // End Of Line, specified in FIBS CLIP
     private Context context;
     private SharedPreferences preferences;
     private SharedPreferences.Editor preferencesEditor;
     private TelnetHandlerListener helper; // GameHelper
+    private static final int SERVER_CHAR_SIZE = 512; // optimal telnet read size?
+    private static final int MAX_WAIT = 30000; // milliseconds, e.g., 30 seconds
+    private static boolean LOGGING_ENABLED = false; // flag to enable/disable Log.i messages
+    private static final String LOGGING_TOGGLE_CMD = "toggle log";
 
     TelnetHandler(TelnetHandlerListener helper, Context context) {
         this.helper = helper;
@@ -62,10 +64,10 @@ class TelnetHandler implements Runnable {
                     } else if ("bye".equalsIgnoreCase(command)) { // standard telnet session exit.
                         client.disconnect();
                         helper.updateLoginButton(false);
+                    } else if (command.equalsIgnoreCase(LOGGING_TOGGLE_CMD)) {
+                        LOGGING_ENABLED = !LOGGING_ENABLED;
+                        helper.appendConsole("Lepton logging: " + LOGGING_ENABLED);
                     } else {
-                        if (command.matches("^(raw)?who\\s")) {
-                            helper.enableWhoOutput(); // normally disabled
-                        }
                         write(out, command);
                     }
                 }
@@ -81,7 +83,7 @@ class TelnetHandler implements Runnable {
                     if (serverOutput.length() > 0) {
                         String[] lines = serverOutput.toString().split("[" + EOL + "]+"); // eliminates most empty lines
                         for (String line : lines) {
-                            //Log.i(TAG, line);
+                            if (LOGGING_ENABLED) { Log.i(TAG, line); }
                             if (line.length() > 0) {
                                 helper.parse(line);
                             }
@@ -126,9 +128,6 @@ class TelnetHandler implements Runnable {
                 String loginCommand = "login" + " " + context.getString(R.string.client_name) + " " + Preferences.getClipVersion() + " " + user + " " + password;
                 write(out, loginCommand);
                 if (readUntil(1 + " " + user + " ", serverOutput)) {
-                    for (String setting : Settings.getSettings()) {
-                        write(out, setting + "\n");
-                    }
                     helper.updateLoginButton(true);
                 } else {
                     helper.updateLoginButton(false);

@@ -24,9 +24,10 @@ class GameHelper implements TelnetHandlerListener {
     @VisibleForTesting
     private static final Integer CLIP_NULL = 0;  // guarrantees FIBS_IGNORE won't be empty
 //    private static final Integer CLIP_WELCOME = 1;
-//    private static final Integer CLIP_OWN_INFO = 2;
-    @VisibleForTesting
-    private static final Integer CLIP_MOTD = 3;
+    static final Integer CLIP_OWN_INFO = 2; // "2 player 1 1 0 0 0 1 1 1 4899 0 1 0 1 1496.40 1 1 0 0 0 America/Los_Angeles"
+
+    //    @VisibleForTesting
+//    private static final Integer CLIP_MOTD = 3;
     @VisibleForTesting
     private static final Integer CLIP_MOTD_END = 4;
     @VisibleForTesting
@@ -49,6 +50,12 @@ class GameHelper implements TelnetHandlerListener {
 //    private static final Integer CLIP_YOU_WHISPER = 18;
 //    private static final Integer CLIP_YOU_KIBITZ = 19;
 
+    private static final int WHO_OPPONENT_KEY =2;
+    private static final int WHO_READY_KEY = 4;
+    private static final String WHO_OPPONENT_NONE = "-";
+    private static final String WHO_READY_TRUE = "1";
+
+
     // Lists we keep manage
     private final List<String> COMMAND_LIST = new ArrayList<>();
     private static final List<String> CHALLENGERS = new ArrayList<>();
@@ -58,6 +65,8 @@ class GameHelper implements TelnetHandlerListener {
     // constants for the challengers list
     private static final char CHALLENGE_SEP = ':';
     private static final int MAX_READY_QUEUE = 5; // How many challengers to keep in queue
+
+    private static final String DEFAULT_PLAYER_NAME = "You"; // FIBS Player 1 field when playing
 
     // Classes we talk to
     GameHelperListener listener; // MainActivity is the View manager
@@ -71,13 +80,13 @@ class GameHelper implements TelnetHandlerListener {
     private static final String CMD_LOGOUT = "bye"; // telnet disconnect request
 
     /* REGEX PATTERNS */
-    
+
     // Regex pattern for loading the readyQueue list
     private static final String BOT_PATTERN = CLIP_WHO_INFO + " GammonBot";
     
     // allows filtering messages to console by CLIP_ fields set in FIBS_IGNORE
     @VisibleForTesting
-    private static Pattern consoleSkip; // Can't be made final because compiling always yields a new Object.
+    static Pattern consoleSkip; // Can't be made final because compiling always yields a new Object.
     
     // resume
     //    You are now playing with user. Your running match was loaded.
@@ -86,35 +95,35 @@ class GameHelper implements TelnetHandlerListener {
     //    points for user1: n
     //    points for user2: n
     @VisibleForTesting
-    private static final Pattern RESUME = Pattern.compile("([a-zA-Z_]+) has joined you. Your running match was loaded.");
+    static final Pattern RESUME = Pattern.compile("([a-zA-Z_]+) has joined you. Your running match was loaded.");
     // | Are you there\?)
 
     //    Nortally wants to play a 3 point match with you.  (Nortally, 3)
     // Type 'join Nortally' to accept.
     @VisibleForTesting
-    private static final Pattern CHALLENGE = Pattern.compile("([a-zA-Z_]+) wants to play a (\\d+) point match with you.");
+    static final Pattern CHALLENGE = Pattern.compile("([a-zA-Z_]+) wants to play a (\\d+) point match with you.");
 //    private static final Pattern challenge = Pattern.compile("Type 'join ([a-zA-Z_]+)' to accept.");
 
     // > ** You are now playing a 3 point match with Nortally (3, Nortally)
     @VisibleForTesting
-    private static final Pattern NEW_MATCH_1 = Pattern.compile("You are now playing a (\\d+) point match with ([a-zA-Z_]+)");
+    static final Pattern NEW_MATCH_1 = Pattern.compile("You are now playing a (\\d+) point match with ([a-zA-Z_]+)");
     // ** Player Nortally has joined you for a 3 point match. (Nortally, 3)
     @VisibleForTesting
-    private static final Pattern NEW_MATCH_2 = Pattern.compile("Player ([a-zA-Z_]+) has joined you for a (\\d+) point match.");
+    static final Pattern NEW_MATCH_2 = Pattern.compile("Player ([a-zA-Z_]+) has joined you for a (\\d+) point match.");
 
     // Starting a new game with Nortally. (Nortally)
     @VisibleForTesting
-    private static final Pattern START = Pattern.compile("Starting a new game with ([a-zA-Z_]+)\\.");
+    static final Pattern START = Pattern.compile("Starting a new game with ([a-zA-Z_]+)\\.");
 
     // You rolled 4 6.
     // Nortally rolls 3 and 5.
     // You roll 1 and 3.
     @VisibleForTesting
-    private static final Pattern PLAYER_ROLL = Pattern.compile("You roll(ed)? (\\d)( and)? (\\d)\\.");
+    static final Pattern PLAYER_ROLL = Pattern.compile("You roll(ed)? (\\d)( and)? (\\d)\\.");
 
     // Please move 1 piece.
     // Please move 2 pieces.
-    private static final Pattern MOVE_PROMPT = Pattern.compile("^Please move (\\d) pieces?\\.m$");
+    static final Pattern MOVE_PROMPT = Pattern.compile("^Please move (\\d) pieces?\\.m$");
 
     // Nortally moves 1-off .
     // Nortally moves bar-3 12-17 .
@@ -123,74 +132,69 @@ class GameHelper implements TelnetHandlerListener {
     @VisibleForTesting
     //private static final Pattern move = Pattern.compile("[a-zA-Z_]+ moves( (bar|\\d{1,2})-(\\d{1,2}|off)){1,4} \\.");
     // TODO can I split into groups for each value? Use string literal for ( [0-9bar]{1,3}-[0-9of]{1,3})
-    private static final Pattern MOVE = Pattern.compile(
+    static final Pattern MOVE = Pattern.compile(
             ".*moves( [0-9bar]{1,3}-[0-9of]{1,3})( [0-9bar]{1,3}-[0-9of]{1,3})?( [0-9bar]{1,3}-[0-9of]{1,3})?( [0-9bar]{1,3}-[0-9of]{1,3})? \\."
     );
     // Nortally doubles. Type 'accept' or 'reject'.
     // You double. Please wait for Nortally to accept or reject.
     @VisibleForTesting
-    private static final Pattern DOUBLES = Pattern.compile("([a-zA-Z_]+) (double)s?\\..*accept.*reject");
+    static final Pattern DOUBLES = Pattern.compile("([a-zA-Z_]+) (double)s?\\..*accept.*reject");
 
     // Nortally accepts the double. The cube shows 2.
     // You accept the double. The cube shows 2.
     @VisibleForTesting
-    private static final Pattern DOUBLE_ACCEPTED = Pattern.compile("[a-zA-Z_]+ accepts? the double. The cube shows \\d+\\.");
+    static final Pattern DOUBLE_ACCEPTED = Pattern.compile("[a-zA-Z_]+ accepts? the double. The cube shows \\d+\\.");
 
     // You give up. Nortally wins 3 points.
     @VisibleForTesting
-    private static final Pattern DOUBLE_REJECTED = Pattern.compile("You give up. ([a-zA-Z_]+) wins (\\d+) points?\\.");
+    static final Pattern DOUBLE_REJECTED = Pattern.compile("You give up. ([a-zA-Z_]+) wins (\\d+) points?\\.");
 
     // Nortally wants to resign. You will win 2 points. Type 'accept' or 'reject'."
     @VisibleForTesting
-    private static final Pattern RESIGN_OFFER = Pattern.compile("([a-zA-Z_]+) wants to resign\\. You will win (\\d+) points?");
+    static final Pattern RESIGN_OFFER = Pattern.compile("([a-zA-Z_]+) wants to resign\\. You will win (\\d+) points?");
 
     // You reject. The game continues.
     // Nortally rejects. The game continues.
-    private static final Pattern RESIGNATION_REJECTED = Pattern.compile("[a-zA-Z_]+ rejects?\\. The game continues\\.");
+    static final Pattern RESIGNATION_REJECTED = Pattern.compile("[a-zA-Z_]+ rejects?\\. The game continues\\.");
 
     // Nortally accepts and win 1 point.
     // Nortally accepts and wins 4 points.
     // You accept and win 1 point.
     // You accetp and win 3 points.
     @VisibleForTesting
-    private static final Pattern RESIGNATION_ACCEPTED = Pattern.compile("([a-zA-Z_]+) accepts? and wins? (\\d+) points?\\.");
+    static final Pattern RESIGNATION_ACCEPTED = Pattern.compile("([a-zA-Z_]+) accepts? and wins? (\\d+) points?\\.");
 
     // You win the 3 point match 4-0 .
     // GammonBot_XIX wins the 3 point match 6-1 .
     @VisibleForTesting
-    private static final Pattern END_OF_MATCH = Pattern.compile("([a-zA-Z_]+) wins? the (\\d) point match (\\d+)-(\\d+).");
+    static final Pattern END_OF_MATCH = Pattern.compile("([a-zA-Z_]+) wins? the (\\d) point match (\\d+)-(\\d+).");
 
     // You win the game and get 1 point
     // Nortally wins the game and gets 2 points. Sorry.
-    private static final Pattern END_OF_GAME = Pattern.compile("([a-zA-Z_]+) wins? the game and gets? (\\d+) point");
-
+    static final Pattern END_OF_GAME = Pattern.compile("([a-zA-Z_]+) wins? the game and gets? (\\d+) point");
 
     // You can't move.
     // Nortally can't move.
     @VisibleForTesting
-    private static final Pattern BLOCKED = Pattern.compile("([a-zA-Z_]+) can't move.");
+    static final Pattern BLOCKED = Pattern.compile("([a-zA-Z_]+) can't move.");
 
     // Type 'join' if you want to play the next game, type 'leave' if you don't.
-    private static final Pattern JOIN_NEXT = Pattern.compile("Type 'join' if you want to play the next game, type 'leave' if you don't.");
+    static final Pattern JOIN_NEXT = Pattern.compile("Type 'join' if you want to play the next game, type 'leave' if you don't.");
 
-    private static final Pattern TIMEOUT = Pattern.compile("Connection timed out.");
-
-    // "Nortally 1 1 0 0 0 1 1 1 4899 0 1 0 1 1496.40 1 1 0 0 0 America/Los_Angeles"
-    // TODO use toggle setting 13 to enable turning on "moves", coupled with a system to export the game history.
-    private static final Pattern SETTINGS = Pattern.compile("[a-zA-Z_]+ ([01] ){8}\\d+\\.\\d+ \\d \\d (\\d) \\d \\d ([a-zA-Z_/]+)");
+    static final Pattern TIMEOUT = Pattern.compile("Connection timed out.");
 
     // Special cases http://www.fibs.com/fibs_interface.html#play_state_spanner where 2 lines are catenated.
     // The pattern needs to break the line at the missing EOL.
-    private static final Pattern SPANNER_1 = Pattern.compile("^(board\\S*)\\s(.*)");
-    private static final Pattern SPANNER_2 = Pattern.compile("^(.*shows \\d{1,2}\\.)(.+)");
-    private static final String FIBS_CODES = "^\\d{1,2}\\s?";
-    private static final Pattern[] SPANNER = new Pattern[] {SPANNER_1, SPANNER_2};
+    static final Pattern SPANNER_1 = Pattern.compile("^(board\\S*)\\s(.*)");
+    static final Pattern SPANNER_2 = Pattern.compile("^(.*shows \\d{1,2}\\.)(.+)");
+    static final String FIBS_CODES = "^\\d{1,2}\\s?";
+    static final Pattern[] SPANNER = new Pattern[] {SPANNER_1, SPANNER_2};
 
     // addCommand regex strings
-    private static final String JOIN = "^join";
-    private static final String WHO = "^(raw)?who";
+    static final String JOIN = "^join";
+    static final String WHO = "^(raw)?who";
 
-    private static final String DEFAULT_BOARD = "board:You:Opponent:0:0:0:0:-2:0:0:0:0:5:0:3:0:0:0:-5:5:0:0:0:-3:0:-5:0:0:0:0:2:0:0:0:0:0:0:1:1:1:0:1:-1:0:25:0:0:0:0:2:5:0:0";
+    static final String DEFAULT_BOARD = "board:You:Opponent:0:0:0:0:-2:0:0:0:0:5:0:3:0:0:0:-5:5:0:0:0:-3:0:-5:0:0:0:0:2:0:0:0:0:0:0:1:1:1:0:1:-1:0:25:0:0:0:0:2:5:0:0";
 
     // for Dialogs
     private Context context;
@@ -217,20 +221,21 @@ class GameHelper implements TelnetHandlerListener {
 
     // addCommand & readCommand may be called from different threads, must be synchronized
     @Override
-    public synchronized void addCommand(String cmd) {
-        if (cmd.equals("disable test")) {
-            BoardView.DISABLE_TEST = !BoardView.DISABLE_TEST;
-            appendConsole("DISABLE_TEST now " + BoardView.DISABLE_TEST);
-        }
-        if (cmd.matches(JOIN)) {
+    public synchronized void addCommand(String command) {
+        if (command.matches(JOIN)) {
             listener.setPendingOffer(BoardView.NONE);
             CHALLENGERS.clear();
-//        } else if (cmd.matches(WHO)) {
-        } else if (cmd.startsWith("who")) {
-            FIBS_IGNORE.remove(CLIP_WHO_INFO);
-            consoleSkip = updateConsoleSkip(FIBS_IGNORE);
+        } else {
+            Log.i(TAG, "command: " + command);
+            Pattern who = Pattern.compile(WHO);
+            Matcher m = who.matcher(command);
+            if (m.find()) {
+                enableWhoOutput(); // normally disabled
+                FIBS_IGNORE.remove(CLIP_WHO_INFO);
+                consoleSkip = updateConsoleSkip(FIBS_IGNORE);
+            }
         }
-        COMMAND_LIST.add(cmd);
+        COMMAND_LIST.add(command);
     }
 
     @Override
@@ -275,11 +280,16 @@ class GameHelper implements TelnetHandlerListener {
             return;
         }
 
+        if (line.startsWith(CLIP_OWN_INFO + " ")) {
+            updateSettings(line);
+        }
         //User status field meanings (ref: FIBS CLIP doc)
         //  code name opponent watching ready away rating experience idle login hostname client email
         if (line.startsWith(BOT_PATTERN)) {
             String[] words = line.split(" ");
-            if (words[3].equals("-") && words[4].equals("1")) { // player is ready
+            if (words.length >= WHO_READY_KEY
+                    && words[WHO_OPPONENT_KEY].equals(WHO_OPPONENT_NONE)
+                    && words[WHO_READY_KEY].equals(WHO_READY_TRUE)) { // player is ready
                 READY_QUEUE.add(words[1]);
                 if (READY_QUEUE.size() > MAX_READY_QUEUE) { // only keep 5 in the queue
                     READY_QUEUE.remove(0);
@@ -320,28 +330,29 @@ class GameHelper implements TelnetHandlerListener {
         match.usePattern(NEW_MATCH_1);
         if (match.find()) {
             addCommand("board");
-            board.setGameOver(false);
+            //board.setGameOver(false);
             return;
         }
 
         match.usePattern(NEW_MATCH_2);
         if (match.find()) {
             addCommand("board");
-            board.setGameOver(false);
+            //board.setGameOver(false);
             return;
         }
 
         match.usePattern(RESUME);
         if (match.find()) {
             addCommand("board");
-            board.setGameOver(false);
+            //board.setGameOver(false);
             return;
         }
 
         match.usePattern(START);
         if (match.find()) {
+            addCommand("board");
             moveHasBeenInitialized = false;
-            board.setGameOver(false);
+            //board.setGameOver(false);
             return;
         }
 
@@ -442,7 +453,7 @@ class GameHelper implements TelnetHandlerListener {
     // for resignationAccepted and winGame
     private void finishGame(String opponent) {
         listener.setPendingOffer(BoardView.NONE);
-        board.setGameOver(true);
+        board.setGameOver();
         listener.setScoreBoardMessage(board); // This is where the score can be FINAL
         updateGameBoard(board);
     }
@@ -504,7 +515,11 @@ class GameHelper implements TelnetHandlerListener {
     }
 
     String getPlayerName() {
-        return fibs.getMyUser();
+        if (board.getPlayerName().equals(DEFAULT_PLAYER_NAME)) {
+            return fibs.getMyUser();
+        } else {
+            return board.getPlayerName();
+        }
     }
 
     void roll() { // e.g., roll if appropriate
@@ -566,4 +581,10 @@ class GameHelper implements TelnetHandlerListener {
     void logout() { addCommand(CMD_LOGOUT); }
 
     void login(String name, String pw) { addCommand("connect " + name + " " + pw); }
+
+    void updateSettings(String clip_own_info) {
+        for (Object setting : Preferences.getSettings(clip_own_info)) {
+            addCommand((String)setting);
+        }
+    }
 }
