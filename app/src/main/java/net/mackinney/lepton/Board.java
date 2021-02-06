@@ -7,16 +7,14 @@ import java.util.Arrays;
  */
 class Board {
      static final String TAG = "Board";
-    /* sample FIBS CLIP output to be parsed; http://www.fibs.com/fibs_interface.html
-        board:You:Nortally:5:0:0:0:-3:0:0:2:0:3:0:3:0:-1:0:-4:4:0:1:0:-2:0:-2:-3:1:0:0:1:0:-1:0:0:0:0:2:0:1:0:1:-1:0:25:0:0:0:0:2:0:0:0
-    */
+    // board:You:Nortally:5:0:0:0:-3:0:0:2:0:3:0:3:0:-1:0:-4:4:0:1:0:-2:0:-2:-3:1:0:0:1:0:-1:0:0:0:0:2:0:1:0:1:-1:0:25:0:0:0:0:2:0:0:0
 
     private static final int NUM_CLIP_FIELDS = 52;
     private static final int FIRST_NUMERIC_CLIP_FIELD = 3;
     private int[] state = new int[NUM_CLIP_FIELDS];
 
     // The FIBS board indices; input to getState()
-    //static final int PLAYER = 1;         // the player's name (always 'You', we display the login name on the scoreboard)
+    static final int PLAYER = 1;         // 'You' if playing, someone else if watching
     static final int OPPONENT = 2;       // the opponent's name
     static final int MATCH_LENGTH = 3;   // match length or 9999 for unlimited matches
     static final int SCORE_PLAYER = 4;   // player's points in the match so far
@@ -52,9 +50,9 @@ class Board {
     private static final int QUADRANT_III_END = 18;
 
     private String lastLine;
+    private String playerName = "";
     private String oppName = "";
     private int[] boardPoints = new int[NUM_POINTS]; // 24 points + home & bar
-    private boolean gameOver = true;
 
     int getState(int param) {
         return state[param];
@@ -73,6 +71,7 @@ class Board {
         if (saveLine) {
             lastLine = line;
         }
+        playerName = terms[PLAYER];
         oppName = terms[OPPONENT];
         for (int ix = FIRST_NUMERIC_CLIP_FIELD; ix < NUM_CLIP_FIELDS; ix++) {
             state[ix] = Integer.parseInt(terms[ix]);
@@ -81,9 +80,15 @@ class Board {
         boardPoints = Arrays.copyOfRange(state, BOARD_START, BOARD_END + 1);
     }
 
+    int getPlayerDie1() { return state[DICE_PLAYER1]; }
+
+    int getPlayerDie2() { return state[DICE_PLAYER2]; }
+
     String getLastLine() {
         return lastLine;
     }
+
+    public String getPlayerName() { return playerName; }
 
     String getOppName() {
         return oppName;
@@ -151,7 +156,7 @@ class Board {
         return state[MAY_DOUBLE_OPP] == 1;
     }
 
-    boolean hasMovesByDie(int d) {      // we expect d in [1, 2, ... 6]
+    boolean hasMovesByDie(int d) {                     // we expect d in [1, 2, ... 6]
         if (boardPoints[state[BAR]] != 0) {            // if on bar, must move from bar
             return pointIsAvailable(state[BAR] + state[DIRECTION] * d);
         } else {
@@ -165,7 +170,7 @@ class Board {
                                 return true;
                             }
                         } else {
-                            return true;               // otherwise valid
+                            return true;                // otherwise valid
                         }
                     }
                 }
@@ -175,10 +180,10 @@ class Board {
     }
 
     boolean isGameOver() {
-        return gameOver;
+        return state[TURN] == 0;
     }
 
-    void setGameOver(boolean gameOver) {
-        this.gameOver = gameOver;
+    void setGameOver() {
+        state[TURN] = 0; // so we can indicate the score is Final
     }
 }

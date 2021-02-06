@@ -208,7 +208,7 @@ class Move {
     /**
      * An ordered pair defining the move of one checker
      */
-    private class SingleMove {
+    private static class SingleMove {
         private int source;
         private int dest;
 

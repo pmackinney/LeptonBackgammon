@@ -5,6 +5,9 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Stores state information between launches
  *
@@ -15,6 +18,8 @@ import android.util.Log;
 class Preferences {
     private static final String TAG = "Preferences";
     private Context context;
+
+    // Preferences properties
     private SharedPreferences preferences;
     private SharedPreferences.Editor preferencesEditor;
     private static final String SERVER_KEY = "server";
@@ -31,6 +36,42 @@ class Preferences {
     private String user;
     private String password;
     private int invitationLength;
+
+    // FIBS Toggles & Settings
+    // TODO these should  be configurable in GUI
+    // "2 player 1 1 0 0 0 1 1 1 4899 0 1 0 1 1496.40 1 1 0 0 0 America/Los_Angeles"
+    //    private static final int CLIP_MESSAGE_KEY = 0;
+    //    private static final int PLAYER_KEY = 1;
+    //    private static final int ALLOWPIP_KEY = 2;
+    //    private static final int AUTOBOARD_KEY = 3;
+    //    private static final int AUTODOUBLE_KEY = 4;
+    //    private static final int AUTOMOVE_KEY = 5;
+    //    private static final int AWAY_KEY = 6;
+    //    private static final int BELL_KEY = 7 ;
+    //    private static final int CRAWFORD_KEY = 8;
+    //    private static final int DOUBLE_KEY = 9;
+    //    private static final int EXPERIENCE_KEY =10;
+    //    private static final int GREEDY_KEY = 11;
+    private static final int MOREBOARDS_KEY = 12;
+    //    private static final int MOVES_KEY = 13;
+    //    private static final int NOTIFY_KEY = 14;
+    //    private static final int RATING_KEY = 15;
+    //    private static final int RATINGS_KEY = 16;
+    //    private static final int READY_KEY = 17;
+    //    private static final int REPORT_KEY = 18;
+    //    private static final int SILENT_KEY = 19;
+    //    private static final int TELNET_KEY = 20;
+    //    private static final int TIMEZONE_KEY = 21;
+
+    // required toggles
+    private static final String TOGGLE_CMD = "toggle ";
+    private static final String MOREBOARDS = "moreboards";
+    private static final String MOREBOARDS_REQUIREMENT = "1";
+
+    // required settings
+    private static final String BOARDSTYLE_CMD = "set boardstyle 3";
+    private static String TIMEZONE_CMD_PREFIX = "set timezone ";
+    private static final List settingsCommands = new ArrayList<String>();
 
     Preferences(Context c) {
         context = c;
@@ -86,5 +127,18 @@ class Preferences {
         preferencesEditor.putString(PASSWORD_KEY, password);
         preferencesEditor.putInt(INVITATION_LENGTH_KEY, invitationLength);
         preferencesEditor.apply();
+    }
+
+    static List getSettings(String clip_own_info) {
+        String[] own_info = clip_own_info.split(" ");
+        if (!MOREBOARDS_REQUIREMENT.equals(own_info[MOREBOARDS_KEY])) {
+            settingsCommands.add(TOGGLE_CMD + MOREBOARDS_REQUIREMENT);
+        }
+        settingsCommands.add(BOARDSTYLE_CMD);
+        // can't use modern java call without upping the minimum android version
+        // java.time.ZonedDateTime.now().getZone()
+        settingsCommands.add(TIMEZONE_CMD_PREFIX +
+                            java.util.Calendar.getInstance().getTimeZone().getID());
+        return settingsCommands;
     }
 }

@@ -23,10 +23,17 @@ public class GameHelperUnitTest extends TestCase {
     Matcher match = Pattern.compile("").matcher("");
 
     private void runTest(Pattern p, String input, String expected) {
-        match.reset(input);
-        match.usePattern(p);
-        boolean b = match.find();
-        assertEquals(b, true);
+        if (input.indexOf("\n") == 0) {
+            input = input + "\n";
+        }
+        String[] lines = input.split("\n");
+        for (int ix = 0; ix < lines.size; ix++) {
+            line = lines[ix];
+            match.reset(line);
+            match.usePattern(p);
+            boolean b = match.find();
+            assertEquals(b, true);
+        }
     }
 
     private void runTest(Pattern p, String input, String[] expected) {
@@ -58,25 +65,18 @@ public class GameHelperUnitTest extends TestCase {
     }
 
     @Test
-    public void testChallenge() {
-            runTest(GameHelper.challenge,
-                    "Type 'join Nortally' to accept.",
-                    "Nortally");
-    }
-
-    @Test
-    public void testNewGame() {
-        runTest(GameHelper.newMatch1,
+    public void testBotPattern() {
+        runTest(GameHelper.consoleSkip,
                 "> ** You are now playing a 3 point match with Nortally",
                 new String[]{"3", "Nortally"});
-        runTest(GameHelper.newMatch2,
+        runTest(GameHelper.NEW_MATCH_2,
                 "** Player Nortally has joined you for a 3 point match.",
                 new String[]{"Nortally", "3"});
     }
-
+/*
     @Test
     public void testStart() {
-        runTest(GameHelper.start,
+        runTest(GameHelper.START,
                 "Starting a new game with Nortally.",
                 "Nortally");
     }
@@ -100,52 +100,52 @@ public class GameHelperUnitTest extends TestCase {
     // Nortally moves 4-9 9-14 14-19 17-22 .   group(1, 4, 7, 10)
     // "[a-zA-Z_]+ moves(( bar| \\d{1,2})-(\\d{1,2}|off))(( bar| \\d{1,2})-(\\d{1,2}|off))?(( bar| \\d{1,2})-(\\d{1,2}|off))?(( bar| \\d{1,2})-(\\d{1,2}|off))? ."
     public void testMove() {
-        runTest(GameHelper.move,
+        runTest(GameHelper.MOVE,
                 "Nortally moves 1-off .",
                 " 1-off");
-        runTest(GameHelper.move,
+        runTest(GameHelper.MOVE,
                 "Nortally moves bar-3 12-17 .",
                 new String[]{" bar-3", " 12-17"});
-        runTest(GameHelper.move,
+        runTest(GameHelper.MOVE,
                 "Nortally moves 7-5 7-5 7-5 .",
                 new String[]{" 7-5", " 7-5"," 7-5"});
-        runTest(GameHelper.move,
+        runTest(GameHelper.MOVE,
                 "Nortally moves 4-9 9-14 14-19 17-22 .",
                 new String[]{" 4-9", " 9-14", " 14-19", " 17-22"});
     }
 
     public void testDoubles() {
-        runTest(GameHelper.doubles,
+        runTest(GameHelper.DOUBLES,
                 "Nortally doubles. Type 'accept' or 'reject'.",
                 "Nortally");
     }
 
     public void testDoubleAccepted() {
-        runTest(GameHelper.doubleAccepted,
+        runTest(GameHelper.DOUBLE_ACCEPTED,
                 "Nortally accepts the double. The cube shows 4.",
                 "4");
     }
 
     public void testDoubleRejected() {
-        runTest(GameHelper.doubleRejected,
+        runTest(GameHelper.DOUBLE_REJECTED,
                 "> You give up. Nortally wins 2 points.",
                 "Nortally");
     }
 
     public void testResignOffer() {
-        runTest(GameHelper.resignOffer,
+        runTest(GameHelper.RESIGN_OFFER,
                 "Nortally wants to resign. You will win 2 points. Type 'accept' or 'reject'.",
                 new String[]{"Nortally", "2"});
     }
 
     public void testResignation() {
-        runTest(GameHelper.resignationAccepted,
+        runTest(GameHelper.RESIGNATION_ACCEPTED,
                 "Nortally accepts and wins 4 points.",
                 "Nortally");
     }
 
     public void testWin() {
-        runTest(GameHelper.endOfMatch,
+        runTest(GameHelper.END_OF_MATCH,
             "You win the 3 point match 4-0 .",
             new String[]{"You", "3", "4", "0"});
     }
@@ -176,19 +176,20 @@ public class GameHelperUnitTest extends TestCase {
                 "17 Nortally He's not all there.",
                 "18 I think I'm figuring it all out.",
                 "19 At least, I think I am."};
-        List<Integer> fibsIgnore = new ArrayList<>();
-        for (Integer item : new Integer[]{GameHelper.CLIP_MOTD, GameHelper.CLIP_MOTD_END, GameHelper.CLIP_WHO_INFO, GameHelper.CLIP_WHO_INFO_END, GameHelper.CLIP_LOGIN, GameHelper.CLIP_LOGOUT}) {
-            fibsIgnore.add(item);
-        }
-        Pattern consoleSkip = GameHelper.updateConsoleSkip(fibsIgnore);
-        assertEquals("^(0|3|4|5|6|7|8)\\s?", consoleSkip.pattern());
-        for (int ix = 0; ix < input.length; ix++) {
-            String line = input[ix];
-            String expected = line;
-            Matcher match = consoleSkip.matcher(line);
-            String result = match.find() ? match.group(0) : "no match";
-            System.out.println(ix + " : " + result + "+");
-        }
+//        List<Integer> fibsIgnore = new ArrayList<>();
+//        for (Integer item : new Integer[]{GameHelper.CLIP_MOTD, GameHelper.CLIP_MOTD_END, GameHelper.CLIP_WHO_INFO, GameHelper.CLIP_WHO_INFO_END, GameHelper.CLIP_LOGIN, GameHelper.CLIP_LOGOUT}) {
+//            fibsIgnore.add(item);
+//        }
+//        Pattern consoleSkip = GameHelper.updateConsoleSkip(fibsIgnore);
+//        assertEquals("^(0|3|4|5|6|7|8)\\s?", consoleSkip.pattern());
+//        for (int ix = 0; ix < input.length; ix++) {
+//            String line = input[ix];
+//            String expected = line;
+//            Matcher match = consoleSkip.matcher(line);
+//            String result = match.find() ? match.group(0) : "no match";
+//            System.out.println(ix + " : " + result + "+");
+//        }
     }
+    */
 }
 

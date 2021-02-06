@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
                 // send data from the AlertDialog to the Activity
                 String opponent = ((EditText) inviteLayout.findViewById(R.id.opponent)).getText().toString();
                 String gameLength = ((EditText) inviteLayout.findViewById(R.id.match_length)).getText().toString();
-                if (!gameLength.equals(Integer.toString(invitationLength))) {
+                if (!"".equals(gameLength) && !gameLength.equals(Integer.toString(invitationLength))) { // if different int, save it
                     preferences.setInvitationLength(Integer.parseInt(gameLength));
                     preferences.commit();
                 }
@@ -279,9 +279,15 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
             @Override
             public void run() {
                 if (board != null) {
-                    String oppScoreText = board.getOppName() + "\n" + board.getState(Board.SCORE_OPPONENT) + "/" + board.getState(Board.MATCH_LENGTH) + (board.isGameOver() ? " Final" : "");
+                    int player = board.getState(Board.SCORE_PLAYER);
+                    int opponent = board.getState(Board.SCORE_OPPONENT);
+                    int match = board.getState(Board.MATCH_LENGTH);
+                    String isFinal = (opponent >= match || player >= match) ? " Final" : "";
+                    String oppScoreText = board.getOppName() + "\n" + opponent
+                            + "/" + match + isFinal;
                     oppScore.setText(oppScoreText);
-                    String playerScoreText = helper.getPlayerName() + "\n" + board.getState(Board.SCORE_PLAYER) + "/" + board.getState(Board.MATCH_LENGTH);
+                    String playerScoreText = helper.getPlayerName() + "\n" + board.getState(Board.SCORE_PLAYER)
+                            + "/" + board.getState(Board.MATCH_LENGTH) + isFinal;
                     playerScore.setText(playerScoreText);
                     oppScore.setVisibility(View.VISIBLE);
                     oppScore.invalidate();

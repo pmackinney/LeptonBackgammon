@@ -83,8 +83,8 @@ class BoardView extends AppCompatImageView {
     // properties from the backgammon Board PNG
     private static final int RAW_TILE_WIDTH = 169;
     private static final int RAW_TILE_HEIGHT = 142;
-    // private static final int RAW_TOP_LEFT_X = 216; // top-left of 1st tile, BG point 13
-    private static final int RAW_TOP_LEFT_Y = 55; // TESTING PROPER VALUE
+    // private static final int RAW_TOP_LEFT_X = 216; // Not needed because board is 16 tile widths exactly
+    private static final int RAW_TOP_LEFT_Y = 55;
     private static final float RAW_BOARD_WIDTH = 2704F; // float for scaling computations
     private static final float RAW_BOARD_HEIGHT = 1680F; // float for scaling computations
     private static final int BROWN = -1;
@@ -139,8 +139,11 @@ class BoardView extends AppCompatImageView {
     private float myTop = -1;
 
     static boolean DISABLE_TEST = true;
+
     /**
-     * The Backgammon board
+     * The backgammon board
+     * @param context The application context.
+     * @param attrs View attributes.
      */
     public BoardView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -181,11 +184,9 @@ class BoardView extends AppCompatImageView {
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                float xp = event.getXPrecision();
-                float yp = event.getYPrecision();
                 float x = event.getX();
                 float y = event.getY();
-                this.myLeft = this.getX();
+                this.myLeft = this.getX(); // for scoreboard
                 this.myTop = this.getY();
                 int[] viewLocation = new int[2];
                 this.getLocationOnScreen(viewLocation);
@@ -201,22 +202,14 @@ class BoardView extends AppCompatImageView {
     }
 
     private void downTouch(float x, float y) {
-        int c = getColumn(x);
-        int r = getRow(y);
-        int target = getTarget(r, c); // get the backgammon point, 1-24
-        Log.i(TAG, "tap target: " + target);
         board = helper.getBoard();
-        Log.i(TAG, "board.isGameOver() = " + board.isGameOver() + ", DISABLE_TEST = " + DISABLE_TEST);
-        // skip if not playing
-        if (board.isGameOver() && !DISABLE_TEST) {
+        if (board.isGameOver()) {
             return;
         }
+        int target = getTarget(getColumn(x), getRow(y)); // get the backgammon point, 1-24
+        // skip if not playing
         if (target == CENTER_TAP) {
-            if (board.getState(Board.TURN) == 0) {
-                helper.addCommand("join");
-            } else {
-                helper.addCommand("board");
-            }
+            helper.addCommand("board");
         } else if (target == ACCEPT) { // accept double or resignation
             helper.addCommand("accept");
         } else if (target == REJECT) { // reject double or resignation
@@ -234,7 +227,7 @@ class BoardView extends AppCompatImageView {
                     }
                 } else if (target == SEND_MOVE && move.isReadyToSend(board)) {
                     helper.addCommand(move.toString());
-                } else if (target == CANCEL_MOVE && move.isStarted(board)) { // need to be able to cancel partial move
+                 } else if (target == CANCEL_MOVE && move.isStarted(board)) { // need to be able to cancel partial move
                     board.setBoard(board.getLastLine(), false);
                     newMove(board);
                     updateGameBoard(board);
@@ -250,76 +243,72 @@ class BoardView extends AppCompatImageView {
         }
     }
 
-    private int getTarget(int r, int c) { // , , , double, roll, move
-        if (c == HOME_COLUMN && r == DICE_ROW) {
+    private int getTarget(int x, int y) { // , , , double, roll, move
+        if (x == HOME_COLUMN && y == DICE_ROW) {
             return RESIGN;
-        } else if (c == CUBE_COLUMN
-                && ((r == DICE_ROW && board.playerMayDouble() && board.oppMayDouble())
-                || (r == CUBE_PLAYER_ROW && board.playerMayDouble()))) {
+        } else if (x == CUBE_COLUMN
+                && ((y == DICE_ROW && board.playerMayDouble() && board.oppMayDouble())
+                || (y == CUBE_PLAYER_ROW && board.playerMayDouble()))) {
             return REQUEST_DOUBLE;
-        } else if (c == CUBE_OFFERED_COLUMN && r == DICE_ROW && board.getState(Board.WAS_DOUBLED) == 1) {
+        } else if (x == CUBE_OFFERED_COLUMN && y == DICE_ROW && board.getState(Board.WAS_DOUBLED) == 1) {
             return ACCEPT;
-        } else if (c == CUBE_OFFERED_COLUMN && r == DICE_ROW && offerPending == RESIGN_OFFER) {
+        } else if (x == CUBE_OFFERED_COLUMN && y == DICE_ROW && offerPending == RESIGN_OFFER) {
             return ACCEPT;
-        } else if (c == REJECT_COLUMN && r == DICE_ROW && board.getState(Board.WAS_DOUBLED) == 1) {
+        } else if (x == REJECT_COLUMN && y == DICE_ROW && board.getState(Board.WAS_DOUBLED) == 1) {
             return REJECT;
-        } else if (c == REJECT_COLUMN && r == DICE_ROW && offerPending == RESIGN_OFFER) {
+        } else if (x == REJECT_COLUMN && y == DICE_ROW && offerPending == RESIGN_OFFER) {
             return REJECT;
-        } else if (r == DICE_ROW && c == DICE_COLUMN1) {
+        } else if (y == DICE_ROW && x == DICE_COLUMN1) {
             return Board.DICE_PLAYER1;
-        } else if (r == DICE_ROW && c == DICE_COLUMN1 -1) {
+        } else if (y == DICE_ROW && x == DICE_COLUMN1 -1) {
             return SEND_MOVE;
-        } else if (r == DICE_ROW && c == DICE_COLUMN2 + 1) {
+        } else if (y == DICE_ROW && x == DICE_COLUMN2 + 1) {
             return CANCEL_MOVE;
-        } else if (r == DICE_ROW && c == DICE_COLUMN2) {
+        } else if (y == DICE_ROW && x == DICE_COLUMN2) {
             return Board.DICE_PLAYER2;
-        } else if (c == BAR_COLUMN) {
-            if (r == DICE_ROW) {
+        } else if (x == BAR_COLUMN) {
+            if (y == DICE_ROW) {
                 return CENTER_TAP;
             } else {
                 return BAR;
             }
-        } else if (c == HOME_COLUMN) {
-            if (r == DICE_ROW) {
-                // TODO routine to accept or reject resignation
-                return NONE;
-            } else {
-                return Board.HOME;
-            }
-        } else if (c > CUBE_COLUMN && r != DICE_ROW) { // find the point
+        } else if (x == HOME_COLUMN) {
+            return Board.HOME;
+        } else if (x > CUBE_COLUMN && y != DICE_ROW) { // find the point
             // adjust column value for point correspondence
-            if (c > BAR_COLUMN) {
-                c--;
+            if (x > BAR_COLUMN) {
+                x--;
             }
-            if (r > DICE_ROW) { // bottom of Board
-                c = HOME_COLUMN - 1  - c;
-            } else if (r < DICE_ROW) { // top of Board
-                c = HOME_COLUMN - 2 + c;
+            if (y > DICE_ROW) { // bottom of Board
+                x = HOME_COLUMN - 1  - x;
+            } else { // top of Board
+                x = HOME_COLUMN - 2 + x;
             }
             // convert for direction
             if (board.getState(Board.DIRECTION) > 0) {
-                c = BAR2 - c;
+                x = BAR2 - x;
             }
-            return c;
+            return x;
         }
         return NONE;
     }
 
     private int getColumn(float x) {
         float unit = getWidth() * RAW_TILE_WIDTH / RAW_BOARD_WIDTH;
-        if (0.25F * unit <= x && x <= 1.25F * unit) { // cube column
+        if (0.25F * unit <= x && x <= 1.25F * unit) { // left gutter
             return 0;
         } else if (1.5F * unit <= x && x <= 14.5F * unit) { // points & bar
             return (int) ((x - 0.5F * unit) / unit); // 1 - 13
-        } else if (14.75F * unit <= x && x <= 15.75F * unit) {
+        } else if (14.75F * unit <= x && x <= 15.75F * unit) { // right gutter
             return 14;
         }
         return -1;
     }
 
     private int getRow(float y) {
-        float unit = getHeight() * RAW_TILE_HEIGHT / RAW_BOARD_HEIGHT;
-        float startY = getHeight() * RAW_TOP_LEFT_Y / RAW_BOARD_HEIGHT;
+        int boardHeight = getHeight();
+        float unit = boardHeight * RAW_TILE_HEIGHT / RAW_BOARD_HEIGHT;
+        float startY = boardHeight * RAW_TOP_LEFT_Y / RAW_BOARD_HEIGHT;
         float endY = startY + MAX_ROW * unit;
         if (startY <= y && y <= endY) {
             return (int) ((y - startY) / unit);
@@ -342,6 +331,7 @@ class BoardView extends AppCompatImageView {
 
     /**
      * Refresh the board
+     * @param board The current board.
      */
     void updateGameBoard(Board board) {
         if (board != null) {
@@ -440,12 +430,13 @@ class BoardView extends AppCompatImageView {
         }
     }
 
-    /* drawDice
+    /** drawDice
         playerTurn and dice not rolled -> draw rollDice bitmaps
         playerTurn and dice rolled -> draw playerDice bitmaps
         oppturn and dice rolled -> draw oppDice bitmaps
+        @param canvas The current canvas.
     */
-    private void drawDice(Canvas c) {
+    private void drawDice(Canvas canvas) {
         float diceY = topLeftY + DICE_ROW * tileHeight;
         float diceX = 3.5F * tileWidth; // opponent position
         Bitmap[] bitmaps = null; // to silence lint
@@ -460,10 +451,10 @@ class BoardView extends AppCompatImageView {
                 d1 = board.getState(Board.DICE_PLAYER1);
                 d2 = board.getState(Board.DICE_PLAYER2);
                 if (move.isStarted(board)) {
-                    c.drawBitmap(reject, diceX + 2 * tileWidth, diceY, null); // -- TODO reduce duplicated logic for player, opp
+                    canvas.drawBitmap(reject, diceX + 2 * tileWidth, diceY, null); // -- TODO reduce duplicated logic for player, opp
                 }
                 if (move.isReadyToSend(board)) {
-                    c.drawBitmap(accept, diceX - tileWidth, diceY, null); // -1
+                    canvas.drawBitmap(accept, diceX - tileWidth, diceY, null); // -1
                 } else  {
                     if (d1 > 0) { // if either die is zero, both are -- we don't have to test both
                         if (d1 == move.getActiveDie()) {
@@ -479,8 +470,8 @@ class BoardView extends AppCompatImageView {
             d1 = board.getState(Board.DICE_OPP1);
             d2 = board.getState(Board.DICE_OPP2);
         }
-        c.drawBitmap(bitmaps[d1], diceX, diceY, null);
-        c.drawBitmap(bitmaps[d2], diceX + tileWidth, diceY, null);
+        canvas.drawBitmap(bitmaps[d1], diceX, diceY, null);
+        canvas.drawBitmap(bitmaps[d2], diceX + tileWidth, diceY, null);
     }
 
     private int getLargeDieIndex(int die) { return die + 6; }
