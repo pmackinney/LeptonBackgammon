@@ -31,6 +31,7 @@ class TelnetHandler implements Runnable {
     private TelnetHandlerListener helper; // GameHelper
     private static final int SERVER_CHAR_SIZE = 512; // optimal telnet read size?
     private static final int MAX_WAIT = 30000; // milliseconds, e.g., 30 seconds
+    private static final int MAX_CLIENT_NAME_LENGTH = 20; // per CLIP docs
     private static boolean LOGGING_ENABLED = false; // flag to enable/disable Log.i messages
     private static final String LOGGING_TOGGLE_CMD = "toggle log";
 
@@ -124,8 +125,12 @@ class TelnetHandler implements Runnable {
             // 2 darth 1 1 0 0 0 0 1 1 51 0 1 0 1 1496.12 0 0 0 0 0 America/Los_Angeles
             //
             // Login failure is indicated by another login: prompt with no following EOL
+            String client_name = ontext.getString(R.string.client_name);
+            if (client_name.length() > MAX_CLIENT_NAME_LENGTH) {
+                client_name = client_name.substring(0, MAX_CLIENT_NAME_LENGTH);
+            }
             if (readUntil("login: ", serverOutput)) {
-                String loginCommand = "login" + " " + context.getString(R.string.client_name) + " " + Preferences.getClipVersion() + " " + user + " " + password;
+                String loginCommand = "login" + " " + client_name + " " + Preferences.getClipVersion() + " " + user + " " + password;
                 write(out, loginCommand);
                 if (readUntil(1 + " " + user + " ", serverOutput)) {
                     helper.updateLoginButton(true);

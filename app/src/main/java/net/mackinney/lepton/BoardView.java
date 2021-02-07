@@ -380,7 +380,7 @@ class BoardView extends AppCompatImageView {
                 canvas.drawBitmap(reject, x + tileWidth, y, null);
             }
         }
-        if (offerPending == NONE) {
+        if (offerPending == NONE && board != null && !board.isGameOver()) { // TEST
             drawDice(canvas);
         }
         drawCube(canvas);
