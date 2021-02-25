@@ -118,7 +118,7 @@ class Move {
                 result = true;
             } else if (b.getState(Board.DIRECTION) == 1 && target > playerHome
                        || b.getState(Board.DIRECTION) == -1 && target < playerHome) { //   die is more than enough to bear off
-                if (isPointWithCheckersFurthestFromHome(p, b)) {                      //   and all higher points in home field are empty
+                if (isFurthest(p, b)) {                      //   and all higher points in home field are empty
                     target = playerHome;
                     result = true;
                 }
@@ -187,7 +187,7 @@ class Move {
         return buf.toString();
     }
 
-    private boolean isPointWithCheckersFurthestFromHome(int p, Board b) {
+    private boolean isFurthest(int p, Board b) {
         // This method only gets called when we're bearing off
         int start, end;
         if (playerHome == 0) { // Quadrant I, test points p+1 to 6

@@ -183,12 +183,21 @@ class GameHelper implements TelnetHandlerListener {
 
     static final Pattern TIMEOUT = Pattern.compile("Connection timed out.");
 
+//    static final Pattern SAYS = Pattern.compile("^12\\s(.*)");
+//    static final Pattern SHOUTS = Pattern.compile("^13\\s(.*)");
+//    static final Pattern KIBITZES = Pattern.compile("^14\\s(.*)");
+//    static final Pattern WHISPERS = Pattern.compile("^15\\s(.*)");
+    static final Pattern MESSAGE_TO_TOAST = Pattern.compile("^1[245]\\s(.*)");
+
     // Special cases http://www.fibs.com/fibs_interface.html#play_state_spanner where 2 lines are catenated.
     // The pattern needs to break the line at the missing EOL.
     static final Pattern SPANNER_1 = Pattern.compile("^(board\\S*)\\s(.*)");
     static final Pattern SPANNER_2 = Pattern.compile("^(.*shows \\d{1,2}\\.)(.+)");
     static final String FIBS_CODES = "^\\d{1,2}\\s?";
     static final Pattern[] SPANNER = new Pattern[] {SPANNER_1, SPANNER_2};
+
+    private static final String LEPTON = "set lepton_";
+    private static final int LEPTON_START = 4;
 
     // addCommand regex strings
     static final String JOIN = "^join";
@@ -210,7 +219,7 @@ class GameHelper implements TelnetHandlerListener {
         this.context = context;
         fibs = new TelnetHandler(this, context);
         board = new Board();
-        board.setBoard(DEFAULT_BOARD);
+        //board.setBoard(DEFAULT_BOARD);
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         for (Integer item : new Integer[]{CLIP_MOTD_END, CLIP_WHO_INFO, CLIP_WHO_INFO_END, CLIP_LOGIN, CLIP_LOGOUT}) {
             FIBS_IGNORE.add(item);
@@ -222,20 +231,27 @@ class GameHelper implements TelnetHandlerListener {
     // addCommand & readCommand may be called from different threads, must be synchronized
     @Override
     public synchronized void addCommand(String command) {
-        if (command.matches(JOIN)) {
-            listener.setPendingOffer(BoardView.NONE);
-            CHALLENGERS.clear();
-        } else {
-            Log.i(TAG, "command: " + command);
-            Pattern who = Pattern.compile(WHO);
-            Matcher m = who.matcher(command);
-            if (m.find()) {
-                enableWhoOutput(); // normally disabled
-                FIBS_IGNORE.remove(CLIP_WHO_INFO);
-                consoleSkip = updateConsoleSkip(FIBS_IGNORE);
-            }
+        if (command.equals("demo")) {
+            parse("demo");
         }
-        COMMAND_LIST.add(command);
+        if (command.startsWith(LEPTON)) {
+            setLepton(command.substring((LEPTON_START)));
+        } else {
+            if (command.matches(JOIN)) {
+                listener.setPendingOffer(BoardView.NONE);
+                CHALLENGERS.clear();
+            } else {
+                Log.i(TAG, "command: " + command);
+                Pattern who = Pattern.compile(WHO);
+                Matcher m = who.matcher(command);
+                if (m.find()) {
+                    enableWhoOutput(); // normally disabled
+                    FIBS_IGNORE.remove(CLIP_WHO_INFO);
+                    consoleSkip = updateConsoleSkip(FIBS_IGNORE);
+                }
+            }
+            COMMAND_LIST.add(command);
+        }
     }
 
     @Override
@@ -253,6 +269,9 @@ class GameHelper implements TelnetHandlerListener {
     @Override
     public void parse(String line) {
         // special case all board status updates
+        if (line.equals("demo")) {
+            parse("board:You:GammonBot_XII:5:0:2:1:0:0:0:0:0:8:-2:0:0:1:0:0:4:0:0:0:0:0:-13:0:0:1:0:1:-3:-1:2:6:0:0:2:0:1:0:-1:1:25:0:15:15:0:0:2:0:0:0");
+        }
         if (line.startsWith("board:")) {
             // handle case #1 http://www.fibs.com/fibs_interface.html#play_state_spanner
             int spaceTest = line.indexOf(" ");
@@ -260,7 +279,7 @@ class GameHelper implements TelnetHandlerListener {
                 parse(line.substring(0, spaceTest));
                 parse(line.substring(spaceTest + 1));
             }
-            if (!board.getLastLine().equals(line)) { // skip if board hasn't changed
+            if (!line.equals(board.getLastLine())) { // skip if board hasn't changed
                 board.setBoard(line);
                 if (board.isPlayerTurn()) {             // initialize a new move
                     if (!moveHasBeenInitialized) {
@@ -444,6 +463,11 @@ class GameHelper implements TelnetHandlerListener {
             return;
         }
 
+        match.usePattern(MESSAGE_TO_TOAST);
+        if (match.find()) {
+            listener.toast(match.group(1));
+        }
+
         match.usePattern(TIMEOUT);
         if (match.find()) {
             addCommand("bye");
@@ -585,6 +609,21 @@ class GameHelper implements TelnetHandlerListener {
     void updateSettings(String clip_own_info) {
         for (Object setting : Preferences.getSettings(clip_own_info)) {
             addCommand((String)setting);
+        }
+    }
+
+    private static void setLepton(String command) {
+        int startArg = command.indexOf(' ');
+        if (startArg < 0) {
+            return;
+        }
+        String leptonCommand = command.substring(0, startArg);
+        String leptonArgument = command.substring(startArg + 1);
+        if (Preferences.LOGIN_GREETING_KEY.equals(leptonCommand)
+            || Preferences.MATCH_HELLO_KEY.equals(leptonCommand)
+            ||Preferences.MATCH_GOODBYE_KEY.equals(leptonCommand)) {
+
+
         }
     }
 }

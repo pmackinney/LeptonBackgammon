@@ -19,5 +19,11 @@ interface GameHelperListener {
 
     void setScoreBoardMessage(Board b);
 
+    void showHideScoreBoard();
+
     void quit();
+
+    Preferences getPreferences();
+
+    void toast(String s);
 }

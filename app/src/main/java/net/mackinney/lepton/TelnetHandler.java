@@ -125,7 +125,7 @@ class TelnetHandler implements Runnable {
             // 2 darth 1 1 0 0 0 0 1 1 51 0 1 0 1 1496.12 0 0 0 0 0 America/Los_Angeles
             //
             // Login failure is indicated by another login: prompt with no following EOL
-            String client_name = ontext.getString(R.string.client_name);
+            String client_name = context.getString(R.string.client_name);
             if (client_name.length() > MAX_CLIENT_NAME_LENGTH) {
                 client_name = client_name.substring(0, MAX_CLIENT_NAME_LENGTH);
             }

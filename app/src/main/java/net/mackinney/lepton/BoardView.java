@@ -5,18 +5,13 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 //import android.util.Log;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
 import androidx.appcompat.widget.AppCompatImageView;
-
-import net.mackinney.lepton.R;
 
 /**
  * Keeps the gameboard current, handles touch events.
@@ -27,13 +22,12 @@ class BoardView extends AppCompatImageView {
     private GameHelper helper;
 
     // TODO CAN WE DEFINE ALL BITMAPS IN XML?
-    private final Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.backgammon);
-    private final Bitmap messageboard = BitmapFactory.decodeResource(getResources(), R.drawable.messageboard);
+    private final Bitmap backgammon = BitmapFactory.decodeResource(getResources(), R.drawable.backgammon);
     private final Bitmap brownChecker = BitmapFactory.decodeResource(getResources(), R.drawable.brownchecker);
     private final Bitmap whiteChecker = BitmapFactory.decodeResource(getResources(), R.drawable.whitechecker);
     private final Bitmap brownStack = BitmapFactory.decodeResource(getResources(), R.drawable.brownstack);
     private final Bitmap whiteStack = BitmapFactory.decodeResource(getResources(), R.drawable.whitestack);
-    private final Bitmap[] whitedie = new Bitmap[]{
+    private final Bitmap[] whiteDie = new Bitmap[]{
             BitmapFactory.decodeResource(getResources(), R.drawable.white_prompt),
             BitmapFactory.decodeResource(getResources(), R.drawable.whitedie1),
             BitmapFactory.decodeResource(getResources(), R.drawable.whitedie2),
@@ -47,7 +41,7 @@ class BoardView extends AppCompatImageView {
             BitmapFactory.decodeResource(getResources(), R.drawable.whitedie4b),
             BitmapFactory.decodeResource(getResources(), R.drawable.whitedie5b),
             BitmapFactory.decodeResource(getResources(), R.drawable.whitedie6b)};
-    private final Bitmap[] browndie = new Bitmap[]{
+    private final Bitmap[] brownDie = new Bitmap[]{
             BitmapFactory.decodeResource(getResources(), R.drawable.brown_prompt),
             BitmapFactory.decodeResource(getResources(), R.drawable.browndie1),
             BitmapFactory.decodeResource(getResources(), R.drawable.browndie2),
@@ -61,6 +55,16 @@ class BoardView extends AppCompatImageView {
             BitmapFactory.decodeResource(getResources(), R.drawable.browndie4b),
             BitmapFactory.decodeResource(getResources(), R.drawable.browndie5b),
             BitmapFactory.decodeResource(getResources(), R.drawable.browndie6b)};
+    private final Bitmap[] skeletonDie = new Bitmap[] {
+            BitmapFactory.decodeResource(getResources(), R.drawable.skeleton0),
+            BitmapFactory.decodeResource(getResources(), R.drawable.skeleton1),
+            BitmapFactory.decodeResource(getResources(), R.drawable.skeleton2),
+            BitmapFactory.decodeResource(getResources(), R.drawable.skeleton3),
+            BitmapFactory.decodeResource(getResources(), R.drawable.skeleton4),
+            BitmapFactory.decodeResource(getResources(), R.drawable.skeleton5),
+            BitmapFactory.decodeResource(getResources(), R.drawable.skeleton6)
+    };
+    private final Bitmap[] skeleton = new Bitmap[2];
     private final Bitmap[] cube = new Bitmap[]{
             BitmapFactory.decodeResource(getResources(), R.drawable.cube1),
             BitmapFactory.decodeResource(getResources(), R.drawable.cube2),
@@ -125,6 +129,12 @@ class BoardView extends AppCompatImageView {
     private static final int CANCEL_MOVE = 70;
     private static final int RESIGN = 71;
 
+    private final float diceY;
+    private final float oppDie1X;
+    private final float oppDie2X;
+    private final float playerDie1X;
+    private final float playerDie2X;
+
     // flags
     private int offerPending = NONE;
     private int offerLevel;
@@ -151,6 +161,14 @@ class BoardView extends AppCompatImageView {
         tileWidth = scale(RAW_TILE_WIDTH);
         tileHeight = scale(RAW_TILE_HEIGHT);
         cubeX = (1.5F * tileWidth - cube[0].getWidth()) / 2F;
+//        shiftWidth = .5F + (tileWidth - brownChecker.getWidth()) / 2F;
+        diceY = topLeftY + DICE_ROW * tileHeight;
+        oppDie1X = 3.5F * tileWidth;
+        oppDie2X = oppDie1X + tileWidth;
+        playerDie1X = oppDie1X + 7 * tileWidth;
+        playerDie2X = playerDie1X + tileWidth;
+        skeleton[0] = skeletonDie[0];
+        skeleton[1] = skeletonDie[0];
     }
 
     void initialize(GameHelper helper) {
@@ -209,7 +227,7 @@ class BoardView extends AppCompatImageView {
         int target = getTarget(getColumn(x), getRow(y)); // get the backgammon point, 1-24
         // skip if not playing
         if (target == CENTER_TAP) {
-            helper.addCommand("board");
+            helper.listener.showHideScoreBoard();
         } else if (target == ACCEPT) { // accept double or resignation
             helper.addCommand("accept");
         } else if (target == REJECT) { // reject double or resignation
@@ -317,44 +335,42 @@ class BoardView extends AppCompatImageView {
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-    }
+    protected void onDraw(Canvas canvas) { super.onDraw(canvas); }
 
     private float scale(int x) {
-        return (float) x * bitmap.getWidth() / RAW_BOARD_WIDTH;
+        return (float) x * backgammon.getWidth() / RAW_BOARD_WIDTH;
     }
 
     private float scale(float x) {
-        return x * bitmap.getWidth() / RAW_BOARD_WIDTH;
+        return x * backgammon.getWidth() / RAW_BOARD_WIDTH;
     }
 
     /**
-     * Refresh the board
-     * @param board The current board.
+     * Update the board state and refresh the View
+     * @param b
      */
-    void updateGameBoard(Board board) {
-        if (board != null) {
-            this.board = board;
+    void updateGameBoard(Board b) {
+        if (b != null) {
+            board = b;
         }
-        if (this.board.getState(Board.TURN) == 0) {
+        if (board.getState(Board.TURN) == 0) {
             offerPending = NONE;
-        } else if (this.board.wasDoubled()) {
+        } else if (board.wasDoubled()) {
             offerPending = DOUBLE_OFFER;
         }
-        Bitmap gb = bitmap.copy(Bitmap.Config.RGB_565, true);
+        Bitmap gb = backgammon.copy(Bitmap.Config.RGB_565, true);
         Canvas canvas = new Canvas(gb);
         // Calculate the horizontal offset (assume board bitmap is centered)
         DisplayMetrics displayMetrics = new DisplayMetrics();
         ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-        if (this.board.getState(Board.DIRECTION) == -1) {
+        if (board.getState(Board.DIRECTION) == -1) {
             canvas.drawBitmap(point_1_bottom, 0, 0, null);
         } else {
             canvas.drawBitmap(point_1_top, 0, 0, null);
         }
 
         // draw checkers
-        int[] bp = this.board.getBoardPoints();
+        int[] bp = board.getBoardPoints();
         Bitmap checker;
         for (int p = 0; p < bp.length; p++) { // iterate over points and bar
             if (bp[p] != 0) {
@@ -366,7 +382,7 @@ class BoardView extends AppCompatImageView {
                 if (p == BAR1 || p == BAR2) {
                     drawBarPoint(canvas, p, Math.abs(bp[p]), checker);
                 } else {
-                    drawBoardPoint(canvas, p, Math.abs(bp[p]), this.board.getState(Board.DIRECTION), checker);
+                    drawBoardPoint(canvas, p, Math.abs(bp[p]), board.getState(Board.DIRECTION), checker);
                 }
             }
         }
@@ -389,7 +405,6 @@ class BoardView extends AppCompatImageView {
         if (this.getVisibility() == View.VISIBLE) {
             helper.listener.setScoreBoardMessage(board);
         }
-
     }
 
     private void drawCube(Canvas c) {
@@ -436,42 +451,49 @@ class BoardView extends AppCompatImageView {
         oppturn and dice rolled -> draw oppDice bitmaps
         @param canvas The current canvas.
     */
+
     private void drawDice(Canvas canvas) {
-        float diceY = topLeftY + DICE_ROW * tileHeight;
-        float diceX = 3.5F * tileWidth; // opponent position
+        float dice1X = oppDie1X; // opponent position
+        float dice2X = oppDie2X;
         Bitmap[] bitmaps = null; // to silence lint
         int d1 = -1;             //       "
         int d2 = -1;             //       "
         if (board.isPlayerTurn()) {
-            diceX += 7F * tileWidth;    // adjust to player position
-                if (move == null) {
-                    newMove(board);
-                }
-                bitmaps = (board.getState(Board.COLOR) == BROWN) ? browndie : whitedie;
-                d1 = board.getState(Board.DICE_PLAYER1);
-                d2 = board.getState(Board.DICE_PLAYER2);
-                if (move.isStarted(board)) {
-                    canvas.drawBitmap(reject, diceX + 2 * tileWidth, diceY, null); // -- TODO reduce duplicated logic for player, opp
-                }
-                if (move.isReadyToSend(board)) {
-                    canvas.drawBitmap(accept, diceX - tileWidth, diceY, null); // -1
-                } else  {
-                    if (d1 > 0) { // if either die is zero, both are -- we don't have to test both
-                        if (d1 == move.getActiveDie()) {
-                            d1 = getLargeDieIndex(d1);
-                        }
-                        if (d2 == move.getActiveDie()) {
-                            d2 = getLargeDieIndex(d2);
-                        }
+            dice1X = playerDie1X;    // adjust to player position
+            dice2X = playerDie2X;
+            if (move == null) {
+                newMove(board);
+            }
+            bitmaps = (board.getState(Board.COLOR) == BROWN) ? brownDie : whiteDie;
+            d1 = board.getState(Board.DICE_PLAYER1);
+            d2 = board.getState(Board.DICE_PLAYER2);
+            if (move.isStarted(board)) {
+                canvas.drawBitmap(reject, dice1X + 2 * tileWidth, diceY, null); // -- TODO reduce duplicated logic for player, opp
+            }
+            if (move.isReadyToSend(board)) {
+                canvas.drawBitmap(accept, dice1X - tileWidth, diceY, null); // -1
+            } else  {
+                if (d1 > 0) { // if either die is zero, both are -- we don't have to test both
+                    if (d1 == move.getActiveDie()) {
+                        d1 = getLargeDieIndex(d1);
+                    }
+                    if (d2 == move.getActiveDie()) {
+                        d2 = getLargeDieIndex(d2);
                     }
                 }
+            }
+            canvas.drawBitmap(skeleton[0], oppDie1X, diceY, null);
+            canvas.drawBitmap(skeleton[1], oppDie2X, diceY, null);
         } else {
-            bitmaps = (board.getState(Board.COLOR) == BROWN) ? whitedie : browndie;
+            bitmaps = (board.getState(Board.COLOR) == BROWN) ? whiteDie : brownDie;
             d1 = board.getState(Board.DICE_OPP1);
             d2 = board.getState(Board.DICE_OPP2);
+            // save to display when player turn
+            skeleton[0] = skeletonDie[d1];
+            skeleton[1] = skeletonDie[d2];
         }
-        canvas.drawBitmap(bitmaps[d1], diceX, diceY, null);
-        canvas.drawBitmap(bitmaps[d2], diceX + tileWidth, diceY, null);
+        canvas.drawBitmap(bitmaps[d1], dice1X, diceY, null);
+        canvas.drawBitmap(bitmaps[d2], dice2X , diceY, null);
     }
 
     private int getLargeDieIndex(int die) { return die + 6; }
@@ -569,20 +591,12 @@ class BoardView extends AppCompatImageView {
         return column;
     }
 
-    private Bitmap getPlayerChecker(Board b) {
-        return getPlayerChecker(b, false);
-    }
-
-    private Bitmap getPlayerChecker(Board b, boolean isOff) {
+   private Bitmap getPlayerChecker(Board b, boolean isOff) {
         if (board.getState(Board.COLOR) < 0) {
             return isOff ? brownStack : brownChecker;
         } else {
             return isOff ? whiteStack : whiteChecker;
         }
-    }
-
-    private Bitmap getOppChecker(Board b) {
-        return getOppChecker(b, false);
     }
 
     private Bitmap getOppChecker(Board b, boolean isOff) {

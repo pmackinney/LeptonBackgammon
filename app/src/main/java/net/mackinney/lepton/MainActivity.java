@@ -3,15 +3,18 @@ package net.mackinney.lepton;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.DialogInterface;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 /**
  * The main activity for Lepton Backgammon, listener for GameHelper, manages all buttons.
@@ -26,6 +29,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
     private TextView playerScore;
     private Preferences preferences;
     private ImageView splash;
+    private static final float LARGE_DISPLAY_MULTIPLIER = 1.5F;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +40,10 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         consoleTextView = findViewById(R.id.console);
         consoleTextView.setMovementMethod(new ScrollingMovementMethod());
         consoleTextView.setTextColor(Color.BLACK);
+        if ((getResources().getConfiguration().screenLayout &
+                Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_LARGE) {
+            consoleTextView.setTextSize(consoleTextView.getTextSize() * LARGE_DISPLAY_MULTIPLIER);
+        }
         String consoleMessage = getString(R.string.client_name) + "\n" + getString(R.string.copyright) + "\n";
         consoleTextView.setText(consoleMessage);
         boardView = findViewById(R.id.boardView);
@@ -70,14 +78,16 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         if (boardView.getVisibility() == View.VISIBLE) {
             splash.setVisibility(View.GONE);
             boardView.setVisibility(View.INVISIBLE);
+            commandText.setVisibility(View.VISIBLE);
             consoleTextView.setVisibility(View.VISIBLE);
             oppScore.setVisibility(View.INVISIBLE);
             playerScore.setVisibility(View.INVISIBLE);
             findViewById(R.id.send).setVisibility(View.VISIBLE);
             btn.setText(R.string.button_show);
         } else {
-            updateGameBoard(null);
+            //updateGameBoard();
             boardView.setVisibility(View.VISIBLE);
+            commandText.setVisibility(View.INVISIBLE);
             consoleTextView.setVisibility(View.INVISIBLE);
             oppScore.setVisibility(View.VISIBLE);
             playerScore.setVisibility(View.VISIBLE);
@@ -126,6 +136,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
     /**
      * Offer to resign, either Normal, Gammon, or Backgammon.
      * The use of a custom AlertDialog with a list of choices modeled on examples found here:
+     * https://suragch.medium.com/creating-a-custom-alertdialog-bae919d2efa5
      * https://medium.com/@suragch/adding-a-list-to-an-android-alertdialog-e13c1df6cf00
      * @param view The button that was tapped.
      */
@@ -163,7 +174,7 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
     /**
      * Login or Logout
      * If not logged in, the player is prompted to log in with the previous username and password
-     * values, if available. Side effects: the splash screen is hidden and the Console is displayed.
+     * values, if available. Side effects: the splash screen is hidden and the Console is displayed.00
      * If logged in, the player is logged out and the telnet session is
      * terminated.
      * @param view The button that was tapped.
@@ -242,9 +253,9 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
                 if (isLoggedIn) {
                     ((Button) findViewById(R.id.loginLogout)).setText(R.string.button_logout);
                     visibility = View.VISIBLE;
-                    Button showHide = ((Button) findViewById(R.id.showHide));
-                    showHide.setText(R.string.button_hide);
-                    showHideBoardView(showHide);
+//                    Button showHide = ((Button) findViewById(R.id.showHide));
+//                    showHide.setText(R.string.button_hide);
+//                    showHideBoardView(showHide);
                 } else {
                     ((Button) findViewById(R.id.loginLogout)).setText(R.string.button_login);
                     visibility = View.GONE;
@@ -278,27 +289,35 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (board != null) {
-                    int player = board.getState(Board.SCORE_PLAYER);
-                    int opponent = board.getState(Board.SCORE_OPPONENT);
-                    int match = board.getState(Board.MATCH_LENGTH);
-                    String isFinal = (opponent >= match || player >= match) ? " Final" : "";
-                    String oppScoreText = board.getOppName() + "\n" + opponent
-                            + "/" + match + isFinal;
-                    oppScore.setText(oppScoreText);
-                    String playerScoreText = helper.getPlayerName() + "\n" + board.getState(Board.SCORE_PLAYER)
-                            + "/" + board.getState(Board.MATCH_LENGTH) + isFinal;
-                    playerScore.setText(playerScoreText);
-                    oppScore.setVisibility(View.VISIBLE);
-                    oppScore.invalidate();
-                    playerScore.setVisibility(View.VISIBLE);
-                    playerScore.invalidate();
-                } else {
-                    oppScore.setVisibility(View.GONE);
-                    playerScore.setVisibility(View.GONE);
+            if (board != null) {
+                int player = board.getState(Board.SCORE_PLAYER);
+                int opponent = board.getState(Board.SCORE_OPPONENT);
+                int match = board.getState(Board.MATCH_LENGTH);
+                String isFinal = (opponent >= match || player >= match) ? " Final" : "";
+                String oppScoreText = board.getOppName() + "\n" + opponent
+                        + "/" + match + isFinal;
+                oppScore.setText(oppScoreText);
+                String playerScoreText = helper.getPlayerName() + "\n" + board.getState(Board.SCORE_PLAYER)
+                        + "/" + board.getState(Board.MATCH_LENGTH) + isFinal;
+                playerScore.setText(playerScoreText);
+                if (board.isGameOver()) {
+                    setScoreBoardVisibility(View.VISIBLE);
                 }
+                oppScore.invalidate();
+                playerScore.invalidate();
+            }
             }
         });
+    }
+
+    @Override
+    public void showHideScoreBoard() { // playerScore & oppScore always have the same visibility
+        setScoreBoardVisibility(oppScore.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+    }
+
+    public void setScoreBoardVisibility(int visibility) {
+        oppScore.setVisibility(visibility);
+        playerScore.setVisibility(visibility);
     }
 
     @Override
@@ -355,10 +374,35 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
     @Override
     public void quit() {
         // ref: https://stackoverflow.com/questions/6330200/how-to-quit-android-application-programmatically/27765687#27765687
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            this.finishAndRemoveTask();
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            this.finishAffinity();
-        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+//            this.finishAndRemoveTask();
+//        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+//            this.finishAffinity();
+//        }
+        this.finishAffinity();
+    }
+
+    @Override
+    public Preferences getPreferences() { return preferences; }
+
+    @Override
+    public void toast(final String string) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                int duration = Toast.LENGTH_SHORT; // LENGTH_LONG
+                Toast toast = Toast.makeText(getApplicationContext(), string, duration);
+                toast.setGravity(Gravity.CENTER, 0, 0);
+                toast.show();
+            }
+        });
+    }
+
+    /**
+     * Hide the view
+     * @param view - The View calling this function
+     */
+    public void hide(View view) {
+        view.setVisibility(View.GONE);
     }
 }

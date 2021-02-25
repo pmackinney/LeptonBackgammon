@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="net.mackinney.lepton"
     android:versionCode="1"
-    android:versionName="beta 1"
+    android:versionName="beta 10"
     android:installLocation="auto">
     <uses-permission android:name="android.permission.INTERNET"/>
     <application

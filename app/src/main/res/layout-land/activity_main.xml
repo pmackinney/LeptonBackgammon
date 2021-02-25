@@ -31,8 +31,8 @@
         android:id="@+id/send"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginLeft="16dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginLeft="32dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
         android:layout_marginRight="16dp"
@@ -236,10 +236,13 @@
 
     <ImageView
         android:id="@+id/splash"
-        android:src="@drawable/splash"
-        android:background="@null"
-        android:scaleType="fitCenter"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:contentDescription="Splash Screen" />
+        android:background="@null"
+        android:contentDescription="Splash Screen"
+        android:scaleType="fitCenter"
+        android:src="@drawable/splash"
+        android:onClick="hide"
+        tools:layout_editor_absoluteX="16dp"
+        tools:layout_editor_absoluteY="92dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>

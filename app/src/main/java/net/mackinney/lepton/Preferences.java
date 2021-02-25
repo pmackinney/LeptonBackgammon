@@ -3,7 +3,6 @@ package net.mackinney.lepton;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,6 +72,17 @@ class Preferences {
     private static String TIMEZONE_CMD_PREFIX = "set timezone ";
     private static final List settingsCommands = new ArrayList<String>();
 
+    // lepton settings
+    /**
+     * Phrase to shout when logging in
+     */
+    static final String LOGIN_GREETING_KEY = "login_greeting";
+    static final String MATCH_HELLO_KEY = "match_hello";
+    static final String MATCH_GOODBYE_KEY = "match_goodbye";
+    private static String login_greeting;
+    private static String match_hello;
+    private static String match_goodbye;
+
     Preferences(Context c) {
         context = c;
         preferences = PreferenceManager.getDefaultSharedPreferences(context);
@@ -82,6 +92,9 @@ class Preferences {
         user = preferences.getString(USER_KEY, "none");
         password = preferences.getString(PASSWORD_KEY, "none");
         invitationLength = preferences.getInt(INVITATION_LENGTH_KEY, DEFAULT_INVITATION_LENGTH);
+        login_greeting = preferences.getString(LOGIN_GREETING_KEY, "none");
+        match_hello = preferences.getString(MATCH_HELLO_KEY, "none");
+        match_goodbye = preferences.getString(MATCH_GOODBYE_KEY, "none");
     }
 
     static String getClipVersion() {
