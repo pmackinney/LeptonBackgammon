@@ -289,23 +289,23 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-            if (board != null) {
-                int player = board.getState(Board.SCORE_PLAYER);
-                int opponent = board.getState(Board.SCORE_OPPONENT);
-                int match = board.getState(Board.MATCH_LENGTH);
-                String isFinal = (opponent >= match || player >= match) ? " Final" : "";
-                String oppScoreText = board.getOppName() + "\n" + opponent
-                        + "/" + match + isFinal;
-                oppScore.setText(oppScoreText);
-                String playerScoreText = helper.getPlayerName() + "\n" + board.getState(Board.SCORE_PLAYER)
-                        + "/" + board.getState(Board.MATCH_LENGTH) + isFinal;
-                playerScore.setText(playerScoreText);
-                if (board.isGameOver()) {
-                    setScoreBoardVisibility(View.VISIBLE);
+                if (board != null) {
+                    int player = board.getState(Board.SCORE_PLAYER);
+                    int opponent = board.getState(Board.SCORE_OPPONENT);
+                    int match = board.getState(Board.MATCH_LENGTH);
+                    String isFinal = (opponent >= match || player >= match) ? " Final" : "";
+                    String oppScoreText = board.getOppName() + "\n" + opponent
+                            + "/" + match + isFinal;
+                    oppScore.setText(oppScoreText);
+                    String playerScoreText = helper.getPlayerName() + "\n" + board.getState(Board.SCORE_PLAYER)
+                            + "/" + board.getState(Board.MATCH_LENGTH) + isFinal;
+                    playerScore.setText(playerScoreText);
+                    if (board.isGameOver()) {
+                        setScoreBoardVisibility(View.VISIBLE);
+                    }
+                    oppScore.invalidate();
+                    playerScore.invalidate();
                 }
-                oppScore.invalidate();
-                playerScore.invalidate();
-            }
             }
         });
     }
@@ -404,5 +404,9 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
      */
     public void hide(View view) {
         view.setVisibility(View.GONE);
+    }
+
+    public void setLepton(String s) {
+        preferences.setLepton(s);
     }
 }

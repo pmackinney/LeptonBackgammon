@@ -7,6 +7,9 @@ import android.preference.PreferenceManager;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Stores state information between launches
  *
@@ -153,5 +156,25 @@ class Preferences {
         settingsCommands.add(TIMEZONE_CMD_PREFIX +
                             java.util.Calendar.getInstance().getTimeZone().getID());
         return settingsCommands;
+    }
+
+    /**
+     * Sets a Lepton custom setting
+     * Currently one of Greeting, Match Hello, or Match Goodbye
+     * @param command - key, value pair separated by a space
+     */
+    void setLepton(String command) {
+        int startArg = command.indexOf(' ');
+        if (startArg < 0) {
+            return;
+        }
+        String leptonCommand = command.substring(0, startArg);
+        String leptonArgument = command.substring(startArg + 1);
+        if (LOGIN_GREETING_KEY.equals(leptonCommand)
+                || MATCH_HELLO_KEY.equals(leptonCommand)
+                ||MATCH_GOODBYE_KEY.equals(leptonCommand)) {
+            preferencesEditor.putString(leptonCommand, leptonArgument);
+            preferencesEditor.apply();
+        }
     }
 }

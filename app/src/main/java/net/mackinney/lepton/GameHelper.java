@@ -235,7 +235,7 @@ class GameHelper implements TelnetHandlerListener {
             parse("demo");
         }
         if (command.startsWith(LEPTON)) {
-            setLepton(command.substring((LEPTON_START)));
+            listener.setLepton(command.substring((LEPTON_START)));
         } else {
             if (command.matches(JOIN)) {
                 listener.setPendingOffer(BoardView.NONE);
@@ -609,21 +609,6 @@ class GameHelper implements TelnetHandlerListener {
     void updateSettings(String clip_own_info) {
         for (Object setting : Preferences.getSettings(clip_own_info)) {
             addCommand((String)setting);
-        }
-    }
-
-    private static void setLepton(String command) {
-        int startArg = command.indexOf(' ');
-        if (startArg < 0) {
-            return;
-        }
-        String leptonCommand = command.substring(0, startArg);
-        String leptonArgument = command.substring(startArg + 1);
-        if (Preferences.LOGIN_GREETING_KEY.equals(leptonCommand)
-            || Preferences.MATCH_HELLO_KEY.equals(leptonCommand)
-            ||Preferences.MATCH_GOODBYE_KEY.equals(leptonCommand)) {
-
-
         }
     }
 }

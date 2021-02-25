@@ -451,10 +451,10 @@ class BoardView extends AppCompatImageView {
         oppturn and dice rolled -> draw oppDice bitmaps
         @param canvas The current canvas.
     */
-
     private void drawDice(Canvas canvas) {
         float dice1X = oppDie1X; // opponent position
         float dice2X = oppDie2X;
+
         Bitmap[] bitmaps = null; // to silence lint
         int d1 = -1;             //       "
         int d2 = -1;             //       "
