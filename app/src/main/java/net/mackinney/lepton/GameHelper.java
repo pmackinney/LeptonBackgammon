@@ -106,10 +106,10 @@ class GameHelper implements TelnetHandlerListener {
 
     // > ** You are now playing a 3 point match with Nortally (3, Nortally)
     @VisibleForTesting
-    static final Pattern NEW_MATCH_1 = Pattern.compile("You are now playing a (\\d+) point match with ([a-zA-Z_]+)");
+    static final Pattern NEW_MATCH_1 = Pattern.compile("You are now playing a \\d+ point match with ([a-zA-Z_]+)");
     // ** Player Nortally has joined you for a 3 point match. (Nortally, 3)
     @VisibleForTesting
-    static final Pattern NEW_MATCH_2 = Pattern.compile("Player ([a-zA-Z_]+) has joined you for a (\\d+) point match.");
+    static final Pattern NEW_MATCH_2 = Pattern.compile("Player ([a-zA-Z_]+) has joined you for a \\d+ point match.");
 
     // Starting a new game with Nortally. (Nortally)
     @VisibleForTesting
@@ -196,8 +196,7 @@ class GameHelper implements TelnetHandlerListener {
     static final String FIBS_CODES = "^\\d{1,2}\\s?";
     static final Pattern[] SPANNER = new Pattern[] {SPANNER_1, SPANNER_2};
 
-    private static final String LEPTON = "set lepton_";
-    private static final int LEPTON_START = 4;
+    private static final String LEPTON = "set lepton ";
 
     // addCommand regex strings
     static final String JOIN = "^join";
@@ -235,7 +234,7 @@ class GameHelper implements TelnetHandlerListener {
             parse("demo");
         }
         if (command.startsWith(LEPTON)) {
-            listener.setLepton(command.substring((LEPTON_START)));
+            listener.setLepton(command);
         } else {
             if (command.matches(JOIN)) {
                 listener.setPendingOffer(BoardView.NONE);
@@ -343,27 +342,31 @@ class GameHelper implements TelnetHandlerListener {
         match.usePattern(CHALLENGE);
         if (match.find()) {
             addChallenger(match.group(1) + CHALLENGE_SEP + match.group(2));
+            listener.toast(line);
             return;
         }
 
         match.usePattern(NEW_MATCH_1);
         if (match.find()) {
             addCommand("board");
-            //board.setGameOver(false);
+            String message = matchHello(match.group(1));
+            if (message.length() > 0) {
+                addCommand(message);
+            }
             return;
         }
 
         match.usePattern(NEW_MATCH_2);
         if (match.find()) {
             addCommand("board");
-            //board.setGameOver(false);
+            addCommand(matchHello(match.group(1)));
             return;
         }
 
         match.usePattern(RESUME);
         if (match.find()) {
             addCommand("board");
-            //board.setGameOver(false);
+            addCommand(matchHello(match.group(1)));
             return;
         }
 
@@ -371,7 +374,6 @@ class GameHelper implements TelnetHandlerListener {
         if (match.find()) {
             addCommand("board");
             moveHasBeenInitialized = false;
-            //board.setGameOver(false);
             return;
         }
 
@@ -439,6 +441,10 @@ class GameHelper implements TelnetHandlerListener {
                 board.setState(Board.SCORE_OPPONENT, Integer.parseInt(match.group(3)));
             }
             listener.setScoreBoardMessage(board);
+            String message = matchGoodbye(board.getOppName());
+            if (message.length() > 0) {
+                addCommand(message);
+            }
             updateGameBoard(board);
             return;
         }
@@ -604,11 +610,23 @@ class GameHelper implements TelnetHandlerListener {
 
     void logout() { addCommand(CMD_LOGOUT); }
 
-    void login(String name, String pw) { addCommand("connect " + name + " " + pw); }
+    void login(String name, String pw) {
+        addCommand("connect " + name + " " + pw);
+    }
 
     void updateSettings(String clip_own_info) {
-        for (Object setting : Preferences.getSettings(clip_own_info)) {
+        for (Object setting : Preferences.requiredSettingsCommands(clip_own_info)) {
             addCommand((String)setting);
         }
+    }
+
+    private String matchHello(String opponent) {
+        String hello = listener.getLeptonHello();
+        return (hello.length() > 0) ? "tell " + opponent + " " + listener.getLeptonHello() : "";
+    }
+
+    private String matchGoodbye(String opponent) {
+        String goodbye = listener.getLeptonGoodbye();
+        return (goodbye.length() > 0) ? "tell " + opponent + " " + listener.getLeptonGoodbye() : "";
     }
 }

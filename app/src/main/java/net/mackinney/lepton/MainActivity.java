@@ -44,14 +44,14 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
                 Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_LARGE) {
             consoleTextView.setTextSize(consoleTextView.getTextSize() * LARGE_DISPLAY_MULTIPLIER);
         }
-        String consoleMessage = getString(R.string.client_name) + "\n" + getString(R.string.copyright) + "\n";
-        consoleTextView.setText(consoleMessage);
         boardView = findViewById(R.id.boardView);
         oppScore = findViewById(R.id.oppScore);
         playerScore = findViewById(R.id.playerScore);
         helper = new GameHelper(this, this.getApplicationContext());
         boardView.initialize(helper);
         initPreferences();
+        String consoleMessage = getString(R.string.client_name) + "\n" + getString(R.string.copyright) + "\n";
+        consoleTextView.setText(consoleMessage);
         splash = findViewById(R.id.splash);
     }
 
@@ -253,9 +253,14 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
                 if (isLoggedIn) {
                     ((Button) findViewById(R.id.loginLogout)).setText(R.string.button_logout);
                     visibility = View.VISIBLE;
-//                    Button showHide = ((Button) findViewById(R.id.showHide));
-//                    showHide.setText(R.string.button_hide);
-//                    showHideBoardView(showHide);
+                    // on login, display Lepton settings & greet
+                    String greeting = getLeptonGreeting();
+                    appendConsole(Preferences.LOGIN_GREETING_KEY + " : " + greeting + "\n"
+                            + Preferences.MATCH_HELLO_KEY + " : " + getLeptonHello() + "\n"
+                            + Preferences.MATCH_GOODBYE_KEY + " : " + getLeptonGoodbye() + "\n");
+                    if (greeting.length() > 0) {
+                        helper.addCommand("shout " + greeting);
+                    }
                 } else {
                     ((Button) findViewById(R.id.loginLogout)).setText(R.string.button_login);
                     visibility = View.GONE;
@@ -408,5 +413,21 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
 
     public void setLepton(String s) {
         preferences.setLepton(s);
+    }
+
+    @Override
+    public String getLeptonGreeting() {
+        String command = preferences.getLeptonGreeting();
+        return preferences.getLeptonGreeting();
+    }
+
+    @Override
+    public String getLeptonHello() {
+        return preferences.getLeptonHello();
+    }
+
+    @Override
+    public String getLeptonGoodbye() {
+        return preferences.getLeptonGoodbye();
     }
 }

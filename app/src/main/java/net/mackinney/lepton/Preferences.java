@@ -52,7 +52,7 @@ class Preferences {
     //    private static final int BELL_KEY = 7 ;
     //    private static final int CRAWFORD_KEY = 8;
     //    private static final int DOUBLE_KEY = 9;
-    //    private static final int EXPERIENCE_KEY =10;
+    //    private static final int EXPERIENCE_KEY = 10;
     //    private static final int GREEDY_KEY = 11;
     private static final int MOREBOARDS_KEY = 12;
     //    private static final int MOVES_KEY = 13;
@@ -62,18 +62,19 @@ class Preferences {
     //    private static final int READY_KEY = 17;
     //    private static final int REPORT_KEY = 18;
     //    private static final int SILENT_KEY = 19;
-    //    private static final int TELNET_KEY = 20;
+        private static final int TELNET_KEY = 20;
     //    private static final int TIMEZONE_KEY = 21;
 
     // required toggles
     private static final String TOGGLE_CMD = "toggle ";
     private static final String MOREBOARDS = "moreboards";
     private static final String MOREBOARDS_REQUIREMENT = "1";
+    private static final String TELNET = "telnet";
+    private static final String TELNET_REQUIREMENT = "0";
 
     // required settings
     private static final String BOARDSTYLE_CMD = "set boardstyle 3";
     private static String TIMEZONE_CMD_PREFIX = "set timezone ";
-    private static final List settingsCommands = new ArrayList<String>();
 
     // lepton settings
     /**
@@ -145,10 +146,19 @@ class Preferences {
         preferencesEditor.apply();
     }
 
-    static List getSettings(String clip_own_info) {
+    /**
+     * Provides a list of commands to be sent to FIBS
+     * @param clip_own_info - current state of FIBS settings and toogles
+     * @return - List of FIBS commands to ensure required settings
+     */
+    static List requiredSettingsCommands(String clip_own_info) {
+        List settingsCommands = new ArrayList<String>();
         String[] own_info = clip_own_info.split(" ");
         if (!MOREBOARDS_REQUIREMENT.equals(own_info[MOREBOARDS_KEY])) {
-            settingsCommands.add(TOGGLE_CMD + MOREBOARDS_REQUIREMENT);
+            settingsCommands.add(TOGGLE_CMD + MOREBOARDS);
+        }
+        if (!TELNET_REQUIREMENT.equals(own_info[TELNET_KEY])) {
+            settingsCommands.add(TOGGLE_CMD + TELNET);
         }
         settingsCommands.add(BOARDSTYLE_CMD);
         // can't use modern java call without upping the minimum android version
@@ -158,23 +168,56 @@ class Preferences {
         return settingsCommands;
     }
 
+    private static final String LEPTON_PREFIX = "set lepton ";
     /**
-     * Sets a Lepton custom setting
-     * Currently one of Greeting, Match Hello, or Match Goodbye
+     * Sets a Lepton custom message
+     * Syntax: set lepton login_greeting|match_hello|match_goodbye <message>
+     *     login_greeting is shouted at login
+     *     match_hello is kibitzed to opponent at start of match
+     *     match_goodbye is kibitzed to opponent at end of match
      * @param command - key, value pair separated by a space
      */
     void setLepton(String command) {
-        int startArg = command.indexOf(' ');
-        if (startArg < 0) {
-            return;
+        if (command.startsWith(LEPTON_PREFIX)) {
+            command = command.substring(LEPTON_PREFIX.length());
+            int mark = command.indexOf(' ');
+            if (mark > 0 && command.length() > mark) {
+                String key = command.substring(0, mark);
+                String message = command.substring(mark + 1);
+                if (LOGIN_GREETING_KEY.equals(key)
+                || MATCH_HELLO_KEY.equals(key)
+                ||MATCH_GOODBYE_KEY.equals(key)) {
+                    preferencesEditor.putString(key, message);
+                    preferencesEditor.apply();
+                }
+            }
         }
-        String leptonCommand = command.substring(0, startArg);
-        String leptonArgument = command.substring(startArg + 1);
-        if (LOGIN_GREETING_KEY.equals(leptonCommand)
-                || MATCH_HELLO_KEY.equals(leptonCommand)
-                ||MATCH_GOODBYE_KEY.equals(leptonCommand)) {
-            preferencesEditor.putString(leptonCommand, leptonArgument);
-            preferencesEditor.apply();
+    }
+
+    String getLeptonGreeting() {
+        String message = preferences.getString(LOGIN_GREETING_KEY, "");
+        if (null != message && message.length() > 0) {
+            return message;
+        } else {
+            return "";
+        }
+    }
+
+    String getLeptonHello() {
+        String message = preferences.getString(MATCH_HELLO_KEY, "");
+        if (null != message && message.length() > 0) {
+            return message;
+        } else {
+            return "";
+        }
+    }
+
+    String getLeptonGoodbye() {
+        String message = preferences.getString(MATCH_GOODBYE_KEY, "");
+        if (null != message && message.length() > 0) {
+            return message;
+        } else {
+            return "";
         }
     }
 }

@@ -26,4 +26,12 @@ interface GameHelperListener {
     Preferences getPreferences();
 
     void toast(String s);
+
+    void setLepton(String s);
+
+    String getLeptonGreeting();
+
+    String getLeptonHello();
+
+    String getLeptonGoodbye();
 }
