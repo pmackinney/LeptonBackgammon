@@ -104,33 +104,35 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
      * @param view The button that was tapped.
      */
     public void invite(View view) {
-        // create an alert builder
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.invite_title);
-        // set the custom layout and customize it
-        final View inviteLayout = getLayoutInflater().inflate(R.layout.invite, null); // use of null is not recommended, but I don't know what else to put here.
-        ((EditText) inviteLayout.findViewById(R.id.opponent)).setText(helper.getReady());
-        final int invitationLength = preferences.getInvitationLength();
-        ((EditText) inviteLayout.findViewById(R.id.match_length)).setText(Integer.toString(invitationLength));
-        builder.setView(inviteLayout);
-        // add a button
-        builder.setPositiveButton(R.string.button_invite, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                // send data from the AlertDialog to the Activity
-                String opponent = ((EditText) inviteLayout.findViewById(R.id.opponent)).getText().toString();
-                String gameLength = ((EditText) inviteLayout.findViewById(R.id.match_length)).getText().toString();
-                if (!"".equals(gameLength) && !gameLength.equals(Integer.toString(invitationLength))) { // if different int, save it
-                    preferences.setInvitationLength(Integer.parseInt(gameLength));
-                    preferences.commit();
-                }
-                helper.inviteOpponent(opponent, gameLength);
+            // create an alert builder
+            if (helper.getBoard().isGameOver()) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle(R.string.invite_title);
+                // set the custom layout and customize it
+                final View inviteLayout = getLayoutInflater().inflate(R.layout.invite, null); // use of null is not recommended, but I don't know what else to put here.
+                ((EditText) inviteLayout.findViewById(R.id.opponent)).setText(helper.getReady());
+                final int invitationLength = preferences.getInvitationLength();
+                ((EditText) inviteLayout.findViewById(R.id.match_length)).setText(Integer.toString(invitationLength));
+                builder.setView(inviteLayout);
+                // add a button
+                builder.setPositiveButton(R.string.button_invite, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // send data from the AlertDialog to the Activity
+                        String opponent = ((EditText) inviteLayout.findViewById(R.id.opponent)).getText().toString();
+                        String gameLength = ((EditText) inviteLayout.findViewById(R.id.match_length)).getText().toString();
+                        if (!"".equals(gameLength) && !gameLength.equals(Integer.toString(invitationLength))) { // if different int, save it
+                            preferences.setInvitationLength(Integer.parseInt(gameLength));
+                            preferences.commit();
+                        }
+                        helper.inviteOpponent(opponent, gameLength);
+                    }
+                });
+                builder.setNegativeButton(getString(R.string.button_cancel), null);
+                // create and show the alert dialog
+                AlertDialog dialog = builder.create();
+                dialog.show();
             }
-        });
-        builder.setNegativeButton(getString(R.string.button_cancel), null);
-        // create and show the alert dialog
-        AlertDialog dialog = builder.create();
-        dialog.show();
     }
 
     /**
@@ -141,26 +143,28 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
      * @param view The button that was tapped.
      */
     public void resign(View view) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Resign the game?");
-        String[] choices = {"Normal", "Gammon", "Backgammon"};
-        final int[] checkedItem = {0}; // Normal is the default
-        builder.setSingleChoiceItems(choices, checkedItem[0], new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                checkedItem[0] = which;
-            }
-        });
-        // add Resign and Cancel buttons
-        builder.setPositiveButton(R.string.button_resign, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                handleResignation("Player", checkedItem[0]);
-            }
-        });
-        builder.setNegativeButton(getString(R.string.button_cancel), null);
-        // create and show the alert dialog
-        builder.create().show();
+        if (!helper.getBoard().isGameOver()) { // can't resign unless we're playing
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Resign the game?");
+            String[] choices = {"Normal", "Gammon", "Backgammon"};
+            final int[] checkedItem = {0}; // Normal is the default
+            builder.setSingleChoiceItems(choices, checkedItem[0], new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    checkedItem[0] = which;
+                }
+            });
+            // add Resign and Cancel buttons
+            builder.setPositiveButton(R.string.button_resign, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    handleResignation("Player", checkedItem[0]);
+                }
+            });
+            builder.setNegativeButton(getString(R.string.button_cancel), null);
+            // create and show the alert dialog
+            builder.create().show();
+        }
     }
 
     /**
@@ -222,26 +226,28 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
      * @param view The button that was tapped.
      */
     public void join(View view) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(getString(R.string.button_join));
-        final View joinLayout = getLayoutInflater().inflate(R.layout.join, null);
-        String[] challenger = helper.getChallenger();
-        ((EditText) joinLayout.findViewById(R.id.opponent)).setText(challenger[0]);
-        ((TextView) joinLayout.findViewById(R.id.match_length)).setText(challenger[1]);
-        builder.setView(joinLayout);
-        builder.setPositiveButton(R.string.button_join, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                EditText opponent = joinLayout.findViewById(R.id.opponent);
-                String name = opponent.getText().toString();
-                TextView matchLength = joinLayout.findViewById(R.id.match_length);
-                String length = matchLength.getText().toString();
-                helper.joinMatch(opponent.getText().toString());
-            }
-        });
-        builder.setNegativeButton(getString(R.string.button_cancel), null);
-        AlertDialog dialog = builder.create();
-        dialog.show();
+        if (helper.getBoard().isGameOver()) { // can't join unless we're not playing
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle(getString(R.string.button_join));
+            final View joinLayout = getLayoutInflater().inflate(R.layout.join, null);
+            String[] challenger = helper.getChallenger();
+            ((EditText) joinLayout.findViewById(R.id.opponent)).setText(challenger[0]);
+            ((TextView) joinLayout.findViewById(R.id.match_length)).setText(challenger[1]);
+            builder.setView(joinLayout);
+            builder.setPositiveButton(R.string.button_join, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    EditText opponent = joinLayout.findViewById(R.id.opponent);
+                    String name = opponent.getText().toString();
+                    TextView matchLength = joinLayout.findViewById(R.id.match_length);
+                    String length = matchLength.getText().toString();
+                    helper.joinMatch(opponent.getText().toString());
+                }
+            });
+            builder.setNegativeButton(getString(R.string.button_cancel), null);
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        }
     }
 
     @Override
@@ -395,10 +401,12 @@ public class MainActivity extends AppCompatActivity implements GameHelperListene
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                int duration = Toast.LENGTH_SHORT; // LENGTH_LONG
-                Toast toast = Toast.makeText(getApplicationContext(), string, duration);
-                toast.setGravity(Gravity.CENTER, 0, 0);
-                toast.show();
+                if (boardView.getVisibility() == View.VISIBLE) {
+                    int duration = Toast.LENGTH_SHORT; // LENGTH_LONG
+                    Toast toast = Toast.makeText(getApplicationContext(), string, duration);
+                    toast.setGravity(Gravity.CENTER, 0, 0);
+                    toast.show();
+                }
             }
         });
     }

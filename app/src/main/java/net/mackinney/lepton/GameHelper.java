@@ -501,7 +501,7 @@ class GameHelper implements TelnetHandlerListener {
     String getReady() {
         if (READY_QUEUE.isEmpty()) {
             addCommand("rawwho ready");
-            return "Looking for opponent";
+            return "Looking for opponent, tray again";
         } else {
             int i = READY_QUEUE.size() - 1;
             return READY_QUEUE.remove(i);

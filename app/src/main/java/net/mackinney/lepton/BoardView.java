@@ -64,7 +64,11 @@ class BoardView extends AppCompatImageView {
             BitmapFactory.decodeResource(getResources(), R.drawable.skeleton5),
             BitmapFactory.decodeResource(getResources(), R.drawable.skeleton6)
     };
-    private final Bitmap[] skeleton = new Bitmap[2];
+    private final int SKELETON_OPP1 = 0;
+    private final int SKELETON_OPP2 = 1;
+    private final int SKELETON_PLAYER1 = 2;
+    private final int SKELETON_PLAYER2 = 3;
+    private final Bitmap[] skeletonHistory = new Bitmap[4];
     private final Bitmap[] cube = new Bitmap[]{
             BitmapFactory.decodeResource(getResources(), R.drawable.cube1),
             BitmapFactory.decodeResource(getResources(), R.drawable.cube2),
@@ -167,8 +171,9 @@ class BoardView extends AppCompatImageView {
         oppDie2X = oppDie1X + tileWidth;
         playerDie1X = oppDie1X + 7 * tileWidth;
         playerDie2X = playerDie1X + tileWidth;
-        skeleton[0] = skeletonDie[0];
-        skeleton[1] = skeletonDie[0];
+        for (int ix = 0; ix < skeletonHistory.length; ix++) {
+            skeletonHistory[ix] = skeletonDie[0];
+        }
     }
 
     void initialize(GameHelper helper) {
@@ -396,6 +401,9 @@ class BoardView extends AppCompatImageView {
                 canvas.drawBitmap(reject, x + tileWidth, y, null);
             }
         }
+        boolean testa = offerPending == NONE;
+        boolean testb = board != null;
+        boolean testc = !board.isGameOver();
         if (offerPending == NONE && board != null && !board.isGameOver()) { // TEST
             drawDice(canvas);
         }
@@ -456,8 +464,8 @@ class BoardView extends AppCompatImageView {
         float dice2X = oppDie2X;
 
         Bitmap[] bitmaps = null; // to silence lint
-        int d1 = -1;             //       "
-        int d2 = -1;             //       "
+        int d1 = 0;             //  dice will show prompt or blank
+        int d2 = 0;             //       "
         if (board.isPlayerTurn()) {
             dice1X = playerDie1X;    // adjust to player position
             dice2X = playerDie2X;
@@ -467,6 +475,9 @@ class BoardView extends AppCompatImageView {
             bitmaps = (board.getState(Board.COLOR) == BROWN) ? brownDie : whiteDie;
             d1 = board.getState(Board.DICE_PLAYER1);
             d2 = board.getState(Board.DICE_PLAYER2);
+            // save while neither is active
+            skeletonHistory[SKELETON_PLAYER1] = skeletonDie[d1];
+            skeletonHistory[SKELETON_PLAYER2] = skeletonDie[d2];
             if (move.isStarted(board)) {
                 canvas.drawBitmap(reject, dice1X + 2 * tileWidth, diceY, null); // -- TODO reduce duplicated logic for player, opp
             }
@@ -482,15 +493,17 @@ class BoardView extends AppCompatImageView {
                     }
                 }
             }
-            canvas.drawBitmap(skeleton[0], oppDie1X, diceY, null);
-            canvas.drawBitmap(skeleton[1], oppDie2X, diceY, null);
+            canvas.drawBitmap(skeletonHistory[SKELETON_OPP1], oppDie1X, diceY, null);
+            canvas.drawBitmap(skeletonHistory[SKELETON_OPP2], oppDie2X, diceY, null);
         } else {
             bitmaps = (board.getState(Board.COLOR) == BROWN) ? whiteDie : brownDie;
             d1 = board.getState(Board.DICE_OPP1);
             d2 = board.getState(Board.DICE_OPP2);
             // save to display when player turn
-            skeleton[0] = skeletonDie[d1];
-            skeleton[1] = skeletonDie[d2];
+            skeletonHistory[SKELETON_OPP1] = skeletonDie[d1];
+            skeletonHistory[SKELETON_OPP2] = skeletonDie[d2];
+            canvas.drawBitmap(skeletonHistory[SKELETON_PLAYER1], playerDie1X, diceY, null);
+            canvas.drawBitmap(skeletonHistory[SKELETON_PLAYER2], playerDie2X, diceY, null);
         }
         canvas.drawBitmap(bitmaps[d1], dice1X, diceY, null);
         canvas.drawBitmap(bitmaps[d2], dice2X , diceY, null);
