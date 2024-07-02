@@ -1,6 +1,16 @@
+*** OBSOLETED ***
+July 2, 2024 - This student project was successful in what it achieved, but there will be no
+further work on it for the following reasons:
+
+1. The project was proof-of-concept. The code was functional but has significant design flaws.
+
+2. FIBS, the First Internet Backgammon Server, has apparently shut down. I'm grateful to its
+ author, Andreas Schneider, and its longtime maintainer, Patti Beadles. They had no connection
+ with Lepton Backgammon but I enjoyed playing on the server for many years, and the Andreas'
+ clear instructions for writing clients made my project possible.
+
 Lepton Backgammon
 =================
-
 
 A FIBS backgammon client written for Android
 --------------------------------------------
